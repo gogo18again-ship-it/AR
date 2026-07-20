@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "명지피앤피 인사·총무 DX 시스템"
+version = "1.0.0"
+id = "artifacts/hr-system"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24276
+
+[services.development]
+run = "pnpm --filter @workspace/hr-system run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hr-system", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/hr-system/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24276"
+BASE_PATH = "/"

@@ -3,20 +3,28 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: 명지피앤피 인사·총무 DX 시스템 API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Dashboard statistics
+  - name: employees
+    description: Employee management
+  - name: schedules
+    description: Schedule management
+  - name: documents
+    description: Document management
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,616 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: 대시보드 통계
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
+  /employees:
+    get:
+      operationId: listEmployees
+      tags: [employees]
+      summary: 직원 목록 조회
+      parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+        - name: department
+          in: query
+          schema:
+            type: string
+        - name: position
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of employees
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employee"
+    post:
+      operationId: createEmployee
+      tags: [employees]
+      summary: 직원 등록
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeInput"
+      responses:
+        "201":
+          description: Created employee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+
+  /employees/{id}:
+    get:
+      operationId: getEmployee
+      tags: [employees]
+      summary: 직원 상세 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Employee detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmployeeDetail"
+        "404":
+          description: Not found
+    put:
+      operationId: updateEmployee
+      tags: [employees]
+      summary: 직원 정보 수정
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeInput"
+      responses:
+        "200":
+          description: Updated employee
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+    delete:
+      operationId: deleteEmployee
+      tags: [employees]
+      summary: 직원 삭제
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /employees/{id}/personnel-history:
+    get:
+      operationId: listPersonnelHistory
+      tags: [employees]
+      summary: 인사이력 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Personnel history list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PersonnelHistory"
+    post:
+      operationId: createPersonnelHistory
+      tags: [employees]
+      summary: 인사이력 등록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonnelHistoryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PersonnelHistory"
+
+  /employees/{id}/education:
+    get:
+      operationId: listEducation
+      tags: [employees]
+      summary: 교육이력 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Education history list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Education"
+    post:
+      operationId: createEducation
+      tags: [employees]
+      summary: 교육이력 등록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EducationInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Education"
+
+  /employees/{id}/rewards:
+    get:
+      operationId: listRewards
+      tags: [employees]
+      summary: 상벌이력 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Rewards list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reward"
+    post:
+      operationId: createReward
+      tags: [employees]
+      summary: 상벌이력 등록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RewardInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reward"
+
+  /employees/{id}/disciplinary:
+    get:
+      operationId: listDisciplinary
+      tags: [employees]
+      summary: 징계이력 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Disciplinary list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Disciplinary"
+    post:
+      operationId: createDisciplinary
+      tags: [employees]
+      summary: 징계이력 등록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisciplinaryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Disciplinary"
+
+  /employees/{id}/interviews:
+    get:
+      operationId: listInterviews
+      tags: [employees]
+      summary: 면담기록 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Interviews list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Interview"
+    post:
+      operationId: createInterview
+      tags: [employees]
+      summary: 면담기록 등록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InterviewInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Interview"
+
+  /employees/{id}/foreigner-info:
+    get:
+      operationId: getForeignerInfo
+      tags: [employees]
+      summary: 외국인정보 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Foreigner info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForeignerInfo"
+        "404":
+          description: No foreigner info
+    put:
+      operationId: upsertForeignerInfo
+      tags: [employees]
+      summary: 외국인정보 등록/수정
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForeignerInfoInput"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForeignerInfo"
+
+  /employees/{id}/attachments:
+    get:
+      operationId: listAttachments
+      tags: [employees]
+      summary: 첨부파일 목록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Attachments list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attachment"
+    post:
+      operationId: createAttachment
+      tags: [employees]
+      summary: 첨부파일 등록
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttachmentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attachment"
+
+  /attachments/{id}:
+    delete:
+      operationId: deleteAttachment
+      tags: [employees]
+      summary: 첨부파일 삭제
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /employees/{id}/timeline:
+    get:
+      operationId: getEmployeeTimeline
+      tags: [employees]
+      summary: 직원 타임라인 조회
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TimelineEvent"
+
+  /schedules/visa:
+    get:
+      operationId: listVisaSchedules
+      tags: [schedules]
+      summary: 비자 만료 일정
+      responses:
+        "200":
+          description: Visa schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VisaSchedule"
+
+  /schedules/education:
+    get:
+      operationId: listEducationSchedules
+      tags: [schedules]
+      summary: 교육 예정 일정
+      responses:
+        "200":
+          description: Education schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EducationSchedule"
+
+  /schedules/iso:
+    get:
+      operationId: listIsoSchedules
+      tags: [schedules]
+      summary: ISO 일정 목록
+      responses:
+        "200":
+          description: ISO schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IsoSchedule"
+    post:
+      operationId: createIsoSchedule
+      tags: [schedules]
+      summary: ISO 일정 등록
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IsoScheduleInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IsoSchedule"
+
+  /schedules/insurance:
+    get:
+      operationId: listInsuranceSchedules
+      tags: [schedules]
+      summary: 보험 갱신 일정
+      responses:
+        "200":
+          description: Insurance schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InsuranceSchedule"
+    post:
+      operationId: createInsuranceSchedule
+      tags: [schedules]
+      summary: 보험 갱신 일정 등록
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InsuranceScheduleInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InsuranceSchedule"
+
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: 문서 목록 조회
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: employeeName
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+    post:
+      operationId: createDocument
+      tags: [documents]
+      summary: 문서 등록
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  /documents/{id}:
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      summary: 문서 삭제
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +649,659 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    DashboardStats:
+      type: object
+      properties:
+        totalEmployees:
+          type: integer
+        foreignEmployees:
+          type: integer
+        visaExpiringSoon:
+          type: integer
+        educationUpcoming:
+          type: integer
+        insuranceRenewalSoon:
+          type: integer
+        isoScheduleCount:
+          type: integer
+      required:
+        - totalEmployees
+        - foreignEmployees
+        - visaExpiringSoon
+        - educationUpcoming
+        - insuranceRenewalSoon
+        - isoScheduleCount
+
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeNumber:
+          type: string
+        name:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+        hireDate:
+          type: string
+        phone:
+          type: ["string", "null"]
+        isForeigner:
+          type: boolean
+        visaType:
+          type: ["string", "null"]
+        visaExpiryDate:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - employeeNumber
+        - name
+        - department
+        - position
+        - hireDate
+        - isForeigner
+        - createdAt
+
+    EmployeeDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeNumber:
+          type: string
+        name:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+        hireDate:
+          type: string
+        phone:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        birthDate:
+          type: ["string", "null"]
+        isForeigner:
+          type: boolean
+        nationality:
+          type: ["string", "null"]
+        visaType:
+          type: ["string", "null"]
+        visaExpiryDate:
+          type: ["string", "null"]
+        passportExpiryDate:
+          type: ["string", "null"]
+        alienRegistrationExpiryDate:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - employeeNumber
+        - name
+        - department
+        - position
+        - hireDate
+        - isForeigner
+        - createdAt
+
+    EmployeeInput:
+      type: object
+      properties:
+        employeeNumber:
+          type: string
+        name:
+          type: string
+        department:
+          type: string
+        position:
+          type: string
+        hireDate:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        birthDate:
+          type: string
+        isForeigner:
+          type: boolean
+        nationality:
+          type: string
+        visaType:
+          type: string
+        visaExpiryDate:
+          type: string
+        passportExpiryDate:
+          type: string
+        alienRegistrationExpiryDate:
+          type: string
+        notes:
+          type: string
+      required:
+        - employeeNumber
+        - name
+        - department
+        - position
+        - hireDate
+
+    PersonnelHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        type:
+          type: string
+          description: "입사|승진|부서이동|직책변경"
+        date:
+          type: string
+        description:
+          type: string
+        previousDepartment:
+          type: ["string", "null"]
+        newDepartment:
+          type: ["string", "null"]
+        previousPosition:
+          type: ["string", "null"]
+        newPosition:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - employeeId
+        - type
+        - date
+        - description
+        - createdAt
+
+    PersonnelHistoryInput:
+      type: object
+      properties:
+        type:
+          type: string
+        date:
+          type: string
+        description:
+          type: string
+        previousDepartment:
+          type: string
+        newDepartment:
+          type: string
+        previousPosition:
+          type: string
+        newPosition:
+          type: string
+      required:
+        - type
+        - date
+        - description
+
+    Education:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        name:
+          type: string
+        date:
+          type: string
+        completed:
+          type: boolean
+        certificateFile:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - employeeId
+        - name
+        - date
+        - completed
+        - createdAt
+
+    EducationInput:
+      type: object
+      properties:
+        name:
+          type: string
+        date:
+          type: string
+        completed:
+          type: boolean
+        certificateFile:
+          type: string
+        notes:
+          type: string
+      required:
+        - name
+        - date
+        - completed
+
+    Reward:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        type:
+          type: string
+          description: "포상|징계"
+        date:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - employeeId
+        - type
+        - date
+        - content
+        - createdAt
+
+    RewardInput:
+      type: object
+      properties:
+        type:
+          type: string
+        date:
+          type: string
+        content:
+          type: string
+      required:
+        - type
+        - date
+        - content
+
+    Disciplinary:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        disciplinaryType:
+          type: string
+        date:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - employeeId
+        - disciplinaryType
+        - date
+        - content
+        - createdAt
+
+    DisciplinaryInput:
+      type: object
+      properties:
+        disciplinaryType:
+          type: string
+        date:
+          type: string
+        content:
+          type: string
+      required:
+        - disciplinaryType
+        - date
+        - content
+
+    Interview:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        date:
+          type: string
+        content:
+          type: string
+        interviewer:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - employeeId
+        - date
+        - content
+        - createdAt
+
+    InterviewInput:
+      type: object
+      properties:
+        date:
+          type: string
+        content:
+          type: string
+        interviewer:
+          type: string
+      required:
+        - date
+        - content
+
+    ForeignerInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        visaType:
+          type: string
+        visaExpiryDate:
+          type: string
+        passportExpiryDate:
+          type: string
+        alienRegistrationExpiryDate:
+          type: string
+        notes:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+      required:
+        - id
+        - employeeId
+        - visaType
+        - visaExpiryDate
+        - passportExpiryDate
+        - alienRegistrationExpiryDate
+        - updatedAt
+
+    ForeignerInfoInput:
+      type: object
+      properties:
+        visaType:
+          type: string
+        visaExpiryDate:
+          type: string
+        passportExpiryDate:
+          type: string
+        alienRegistrationExpiryDate:
+          type: string
+        notes:
+          type: string
+      required:
+        - visaType
+        - visaExpiryDate
+        - passportExpiryDate
+        - alienRegistrationExpiryDate
+
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        category:
+          type: string
+          description: "근로계약서|자격증|교육수료증|징계문서|기타"
+        fileName:
+          type: string
+        fileUrl:
+          type: string
+        fileSize:
+          type: ["integer", "null"]
+        uploadedAt:
+          type: string
+      required:
+        - id
+        - employeeId
+        - category
+        - fileName
+        - fileUrl
+        - uploadedAt
+
+    AttachmentInput:
+      type: object
+      properties:
+        category:
+          type: string
+        fileName:
+          type: string
+        fileUrl:
+          type: string
+        fileSize:
+          type: integer
+      required:
+        - category
+        - fileName
+        - fileUrl
+
+    TimelineEvent:
+      type: object
+      properties:
+        date:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+      required:
+        - date
+        - type
+        - description
+        - category
+
+    VisaSchedule:
+      type: object
+      properties:
+        employeeId:
+          type: integer
+        employeeName:
+          type: string
+        department:
+          type: string
+        visaType:
+          type: string
+        expiryDate:
+          type: string
+        daysUntilExpiry:
+          type: integer
+        urgency:
+          type: string
+          description: "danger|warning|info"
+      required:
+        - employeeId
+        - employeeName
+        - department
+        - visaType
+        - expiryDate
+        - daysUntilExpiry
+        - urgency
+
+    EducationSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        employeeId:
+          type: integer
+        employeeName:
+          type: string
+        department:
+          type: string
+        educationName:
+          type: string
+        scheduledDate:
+          type: string
+        daysUntil:
+          type: integer
+        urgency:
+          type: string
+      required:
+        - id
+        - employeeId
+        - employeeName
+        - department
+        - educationName
+        - scheduledDate
+        - daysUntil
+        - urgency
+
+    IsoSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        scheduledDate:
+          type: string
+        type:
+          type: string
+        description:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - scheduledDate
+        - type
+        - createdAt
+
+    IsoScheduleInput:
+      type: object
+      properties:
+        title:
+          type: string
+        scheduledDate:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+      required:
+        - title
+        - scheduledDate
+        - type
+
+    InsuranceSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+        insuranceName:
+          type: string
+        renewalDate:
+          type: string
+        insurer:
+          type: ["string", "null"]
+        amount:
+          type: ["integer", "null"]
+        daysUntilRenewal:
+          type: integer
+        urgency:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - insuranceName
+        - renewalDate
+        - daysUntilRenewal
+        - urgency
+        - createdAt
+
+    InsuranceScheduleInput:
+      type: object
+      properties:
+        insuranceName:
+          type: string
+        renewalDate:
+          type: string
+        insurer:
+          type: string
+        amount:
+          type: integer
+        notes:
+          type: string
+      required:
+        - insuranceName
+        - renewalDate
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        category:
+          type: string
+          description: "근로계약서|자격증|교육자료|ISO|ESG|징계문서|기타"
+        employeeId:
+          type: ["integer", "null"]
+        employeeName:
+          type: ["string", "null"]
+        fileName:
+          type: string
+        fileUrl:
+          type: string
+        fileSize:
+          type: ["integer", "null"]
+        uploadedAt:
+          type: string
+      required:
+        - id
+        - title
+        - category
+        - fileName
+        - fileUrl
+        - uploadedAt
+
+    DocumentInput:
+      type: object
+      properties:
+        title:
+          type: string
+        category:
+          type: string
+        employeeId:
+          type: integer
+        fileName:
+          type: string
+        fileUrl:
+          type: string
+        fileSize:
+          type: integer
+      required:
+        - title
+        - category
+        - fileName
+        - fileUrl
