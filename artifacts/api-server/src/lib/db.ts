@@ -39,6 +39,9 @@ export function initSchema(): void {
       passport_expiry_date TEXT,
       alien_registration_expiry_date TEXT,
       notes TEXT,
+      status TEXT NOT NULL DEFAULT '재직',
+      status_changed_at TEXT,
+      status_note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 

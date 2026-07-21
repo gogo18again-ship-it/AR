@@ -15,6 +15,9 @@ function toEmployee(row: Record<string, unknown>) {
     isForeigner: row.is_foreigner === 1,
     visaType: row.visa_type ?? null,
     visaExpiryDate: row.visa_expiry_date ?? null,
+    status: (row.status as string) ?? "재직",
+    statusChangedAt: row.status_changed_at ?? null,
+    statusNote: row.status_note ?? null,
     createdAt: row.created_at,
   };
 }
@@ -38,19 +41,23 @@ function toEmployeeDetail(row: Record<string, unknown>) {
     passportExpiryDate: row.passport_expiry_date ?? null,
     alienRegistrationExpiryDate: row.alien_registration_expiry_date ?? null,
     notes: row.notes ?? null,
+    status: (row.status as string) ?? "재직",
+    statusChangedAt: row.status_changed_at ?? null,
+    statusNote: row.status_note ?? null,
     createdAt: row.created_at,
   };
 }
 
 // List employees
 router.get("/employees", async (req, res): Promise<void> => {
-  const { name, department, position } = req.query as Record<string, string | undefined>;
+  const { name, department, position, status } = req.query as Record<string, string | undefined>;
   let sql = "SELECT * FROM employees WHERE 1=1";
   const params: unknown[] = [];
 
   if (name) { sql += " AND name LIKE ?"; params.push(`%${name}%`); }
   if (department) { sql += " AND department = ?"; params.push(department); }
   if (position) { sql += " AND position = ?"; params.push(position); }
+  if (status) { sql += " AND status = ?"; params.push(status); }
   sql += " ORDER BY created_at DESC";
 
   const rows = db.prepare(sql).all(...params) as Record<string, unknown>[];
@@ -113,6 +120,29 @@ router.delete("/employees/:id", async (req, res): Promise<void> => {
   const id = parseInt(raw, 10);
   db.prepare("DELETE FROM employees WHERE id = ?").run(id);
   res.status(204).end();
+});
+
+// Update employee status (재직 / 휴직 / 퇴사)
+router.patch("/employees/:id/status", async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  const { status, statusNote } = req.body as { status: string; statusNote?: string };
+
+  const allowed = ["재직", "휴직", "퇴사"];
+  if (!allowed.includes(status)) {
+    res.status(400).json({ error: "status는 재직 | 휴직 | 퇴사 중 하나여야 합니다." });
+    return;
+  }
+
+  db.prepare(`
+    UPDATE employees
+    SET status = ?, status_changed_at = datetime('now'), status_note = ?
+    WHERE id = ?
+  `).run(status, statusNote ?? null, id);
+
+  const row = db.prepare("SELECT * FROM employees WHERE id = ?").get(id) as Record<string, unknown> | undefined;
+  if (!row) { res.status(404).json({ error: "직원을 찾을 수 없습니다." }); return; }
+  res.json(toEmployeeDetail(row));
 });
 
 // ─── Personnel History ───────────────────────────────────────────────────────

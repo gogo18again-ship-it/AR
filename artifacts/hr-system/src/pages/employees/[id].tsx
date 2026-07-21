@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useGetEmployee, useGetEmployeeTimeline, getGetEmployeeQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
@@ -5,15 +6,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/ui/states";
-import { ArrowLeft, Edit, Mail, Phone, Calendar, MapPin, Building, Briefcase } from "lucide-react";
+import { ArrowLeft, Edit, Mail, Phone, Calendar, Building, Briefcase, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { formatDuration } from "@/lib/format";
+import { EmployeeStatusDialog } from "@/components/employee-status-dialog";
+
+type Status = "재직" | "휴직" | "퇴사";
+
+const STATUS_BADGE: Record<Status, { variant: "success" | "warning" | "destructive" | "secondary"; label: string }> = {
+  재직: { variant: "success",     label: "재직 중" },
+  휴직: { variant: "warning",     label: "휴직 중" },
+  퇴사: { variant: "destructive", label: "퇴사"    },
+};
 
 // Employee 360 View Component
 export default function EmployeeDetail() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const [, setLocation] = useLocation();
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
 
   const { data: employee, isLoading } = useGetEmployee(id, { 
     query: { enabled: !!id, queryKey: getGetEmployeeQueryKey(id) } 
@@ -26,23 +37,57 @@ export default function EmployeeDetail() {
   if (isLoading) return <LoadingState text="직원 상세 정보를 불러오는 중입니다..." />;
   if (!employee) return <div>직원을 찾을 수 없습니다.</div>;
 
+  const status = ((employee as Record<string, unknown>).status as Status) ?? "재직";
+  const badge = STATUS_BADGE[status];
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+      {status !== "재직" && (
+        <div className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border ${
+          status === "휴직"
+            ? "bg-amber-50 border-amber-200 text-amber-800"
+            : "bg-red-50 border-red-200 text-red-800"
+        }`}>
+          <RefreshCw className="h-4 w-4" />
+          현재 <span className="font-bold">{status}</span> 상태입니다.
+          {(employee as Record<string, unknown>).statusNote && (
+            <span className="text-xs opacity-75 ml-1">— {String((employee as Record<string, unknown>).statusNote)}</span>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => setLocation("/employees")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">직원 상세</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-foreground">직원 상세</h1>
+              <Badge variant={badge.variant}>{badge.label}</Badge>
+            </div>
             <p className="text-muted-foreground mt-1">Employee 360 View</p>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setLocation(`/employees/${id}/edit`)}>
-          <Edit className="h-4 w-4 mr-2" />
-          정보 수정
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setStatusDialogOpen(true)}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            상태 변경
+          </Button>
+          <Button variant="outline" onClick={() => setLocation(`/employees/${id}/edit`)}>
+            <Edit className="h-4 w-4 mr-2" />
+            정보 수정
+          </Button>
+        </div>
       </div>
+
+      <EmployeeStatusDialog
+        employeeId={id}
+        currentStatus={status}
+        employeeName={employee.name}
+        open={statusDialogOpen}
+        onOpenChange={setStatusDialogOpen}
+      />
 
       {/* Top Card - Profile Overview */}
       <Card className="border-border shadow-sm overflow-hidden relative">

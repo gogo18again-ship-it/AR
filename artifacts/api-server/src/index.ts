@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { initSchema } from "./lib/db";
+import { runMigrations } from "./lib/migrate";
 
 const rawPort = process.env["PORT"];
 
@@ -18,6 +19,7 @@ if (Number.isNaN(port) || port <= 0) {
 
 // Initialize SQLite schema and seed data
 initSchema();
+runMigrations();
 
 app.listen(port, (err) => {
   if (err) {
