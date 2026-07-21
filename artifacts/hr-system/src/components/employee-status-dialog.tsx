@@ -62,12 +62,12 @@ export function EmployeeStatusDialog({ employeeId, currentStatus, employeeName, 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+        <DialogHeader className="shrink-0">
           <DialogTitle>재직 상태 변경</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 overflow-y-auto flex-1 pr-1">
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{employeeName}</span> 님의 현재 상태:{" "}
             <span className="font-semibold">{currentStatus}</span>
