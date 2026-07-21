@@ -38,7 +38,7 @@ export default function EmployeeDetail() {
             <p className="text-muted-foreground mt-1">Employee 360 View</p>
           </div>
         </div>
-        <Button variant="outline">
+        <Button variant="outline" onClick={() => setLocation(`/employees/${id}/edit`)}>
           <Edit className="h-4 w-4 mr-2" />
           정보 수정
         </Button>

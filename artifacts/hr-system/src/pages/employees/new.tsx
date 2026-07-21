@@ -122,8 +122,10 @@ export default function EmployeeNew() {
                       <SelectContent>
                         <SelectItem value="경영지원본부">경영지원본부</SelectItem>
                         <SelectItem value="인사총무팀">인사총무팀</SelectItem>
+                        <SelectItem value="인사팀">인사팀</SelectItem>
                         <SelectItem value="생산팀">생산팀</SelectItem>
                         <SelectItem value="품질관리팀">품질관리팀</SelectItem>
+                        <SelectItem value="품질팀">품질팀</SelectItem>
                         <SelectItem value="영업팀">영업팀</SelectItem>
                       </SelectContent>
                     </Select>
@@ -147,6 +149,7 @@ export default function EmployeeNew() {
                         <SelectItem value="사원">사원</SelectItem>
                         <SelectItem value="대리">대리</SelectItem>
                         <SelectItem value="과장">과장</SelectItem>
+                        <SelectItem value="팀장">팀장</SelectItem>
                         <SelectItem value="차장">차장</SelectItem>
                         <SelectItem value="부장">부장</SelectItem>
                         <SelectItem value="임원">임원</SelectItem>

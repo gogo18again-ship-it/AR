@@ -9,6 +9,7 @@ import Dashboard from '@/pages/dashboard';
 import Employees from '@/pages/employees/index';
 import EmployeeNew from '@/pages/employees/new';
 import EmployeeDetail from '@/pages/employees/[id]';
+import EmployeeEdit from '@/pages/employees/edit';
 import Schedules from '@/pages/schedules';
 import Documents from '@/pages/documents';
 
@@ -21,6 +22,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/employees" component={Employees} />
         <Route path="/employees/new" component={EmployeeNew} />
+        <Route path="/employees/:id/edit" component={EmployeeEdit} />
         <Route path="/employees/:id" component={EmployeeDetail} />
         <Route path="/schedules" component={Schedules} />
         <Route path="/documents" component={Documents} />
