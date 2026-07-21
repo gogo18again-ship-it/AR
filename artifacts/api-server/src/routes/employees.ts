@@ -173,6 +173,23 @@ router.post("/employees/:id/personnel-history", async (req, res): Promise<void> 
   });
 });
 
+router.put("/personnel-history/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  const b = req.body;
+  db.prepare(`
+    UPDATE personnel_history SET type=?, date=?, description=?, previous_department=?, new_department=?, previous_position=?, new_position=?
+    WHERE id=?
+  `).run(b.type, b.date, b.description, b.previousDepartment ?? null, b.newDepartment ?? null, b.previousPosition ?? null, b.newPosition ?? null, rid);
+  const row = db.prepare("SELECT * FROM personnel_history WHERE id=?").get(rid) as Record<string, unknown>;
+  res.json({ id: row.id, employeeId: row.employee_id, type: row.type, date: row.date, description: row.description, previousDepartment: row.previous_department ?? null, newDepartment: row.new_department ?? null, previousPosition: row.previous_position ?? null, newPosition: row.new_position ?? null, createdAt: row.created_at });
+});
+
+router.delete("/personnel-history/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  db.prepare("DELETE FROM personnel_history WHERE id=?").run(rid);
+  res.status(204).end();
+});
+
 // ─── Education ───────────────────────────────────────────────────────────────
 router.get("/employees/:id/education", async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
