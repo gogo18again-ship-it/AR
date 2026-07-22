@@ -65,7 +65,12 @@ export default function EmployeeNew() {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
           toast.success("직원이 성공적으로 등록되었습니다.");
-          setLocation("/employees");
+          // setTimeout으로 navigation을 다음 이벤트 루프 틱으로 미룸.
+          // React 18 concurrent 모드에서 onSuccess 호출 시점은 React의 커밋 단계 도중일 수 있으며,
+          // Radix UI SelectContent 등 Portal 컴포넌트의 removeChild 정리가 아직 진행 중인 상태에서
+          // 즉시 setLocation()을 호출하면 "removeChild on Node" 오류가 발생함.
+          // 0ms 지연으로 현재 커밋/언마운트 사이클이 완전히 끝난 뒤 화면 전환함.
+          setTimeout(() => setLocation("/employees"), 0);
         },
         onError: () => {
           toast.error("직원 등록에 실패했습니다.");

@@ -72,7 +72,8 @@ function EmployeeEditForm({
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(id) });
           toast.success("직원 정보가 수정되었습니다.");
-          setLocation(`/employees/${id}`);
+          // new.tsx와 동일한 이유: Portal 언마운트 완료 후 전환
+          setTimeout(() => setLocation(`/employees/${id}`), 0);
         },
         onError: () => {
           toast.error("직원 정보 수정에 실패했습니다.");
