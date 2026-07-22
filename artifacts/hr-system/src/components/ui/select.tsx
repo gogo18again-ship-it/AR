@@ -81,7 +81,12 @@ const SelectContent = React.forwardRef<
   <SelectPrimitive.Content
     ref={ref}
     className={cn(
-      "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      // 닫힘 애니메이션(data-[state=closed]:animate-out 등)을 제거합니다.
+      // Radix UI의 react-presence가 닫힘 애니메이션 중 animationend 이벤트로
+      // DOM 제거를 관리하는데, 이 시점에 React 18 concurrent 커밋이 겹치면
+      // removeChild 오류가 발생합니다. 닫힘 즉시 DOM에서 제거되도록 하여
+      // 충돌 구간 자체를 없앱니다.
+      "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
       position === "popper" &&
         "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
       className
