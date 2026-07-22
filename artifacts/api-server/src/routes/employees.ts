@@ -216,6 +216,21 @@ router.post("/employees/:id/education", async (req, res): Promise<void> => {
   });
 });
 
+router.put("/education/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  const b = req.body;
+  db.prepare("UPDATE education SET name=?, date=?, completed=?, notes=? WHERE id=?")
+    .run(b.name, b.date, b.completed ? 1 : 0, b.notes ?? null, rid);
+  const row = db.prepare("SELECT * FROM education WHERE id=?").get(rid) as Record<string, unknown>;
+  res.json({ id: row.id, employeeId: row.employee_id, name: row.name, date: row.date, completed: row.completed === 1, certificateFile: row.certificate_file ?? null, notes: row.notes ?? null, createdAt: row.created_at });
+});
+
+router.delete("/education/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  db.prepare("DELETE FROM education WHERE id=?").run(rid);
+  res.status(204).end();
+});
+
 // ─── Rewards ─────────────────────────────────────────────────────────────────
 router.get("/employees/:id/rewards", async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
@@ -229,6 +244,20 @@ router.post("/employees/:id/rewards", async (req, res): Promise<void> => {
   const result = db.prepare("INSERT INTO rewards (employee_id, type, date, content) VALUES (?, ?, ?, ?)").run(id, b.type, b.date, b.content);
   const row = db.prepare("SELECT * FROM rewards WHERE id = ?").get(result.lastInsertRowid) as Record<string, unknown>;
   res.status(201).json({ id: row.id, employeeId: row.employee_id, type: row.type, date: row.date, content: row.content, createdAt: row.created_at });
+});
+
+router.put("/rewards/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  const b = req.body;
+  db.prepare("UPDATE rewards SET type=?, date=?, content=? WHERE id=?").run(b.type, b.date, b.content, rid);
+  const row = db.prepare("SELECT * FROM rewards WHERE id=?").get(rid) as Record<string, unknown>;
+  res.json({ id: row.id, employeeId: row.employee_id, type: row.type, date: row.date, content: row.content, createdAt: row.created_at });
+});
+
+router.delete("/rewards/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  db.prepare("DELETE FROM rewards WHERE id=?").run(rid);
+  res.status(204).end();
 });
 
 // ─── Disciplinary ─────────────────────────────────────────────────────────────
@@ -246,6 +275,20 @@ router.post("/employees/:id/disciplinary", async (req, res): Promise<void> => {
   res.status(201).json({ id: row.id, employeeId: row.employee_id, disciplinaryType: row.disciplinary_type, date: row.date, content: row.content, createdAt: row.created_at });
 });
 
+router.put("/disciplinary/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  const b = req.body;
+  db.prepare("UPDATE disciplinary SET disciplinary_type=?, date=?, content=? WHERE id=?").run(b.disciplinaryType, b.date, b.content, rid);
+  const row = db.prepare("SELECT * FROM disciplinary WHERE id=?").get(rid) as Record<string, unknown>;
+  res.json({ id: row.id, employeeId: row.employee_id, disciplinaryType: row.disciplinary_type, date: row.date, content: row.content, createdAt: row.created_at });
+});
+
+router.delete("/disciplinary/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  db.prepare("DELETE FROM disciplinary WHERE id=?").run(rid);
+  res.status(204).end();
+});
+
 // ─── Interviews ───────────────────────────────────────────────────────────────
 router.get("/employees/:id/interviews", async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
@@ -259,6 +302,20 @@ router.post("/employees/:id/interviews", async (req, res): Promise<void> => {
   const result = db.prepare("INSERT INTO interviews (employee_id, date, content, interviewer) VALUES (?, ?, ?, ?)").run(id, b.date, b.content, b.interviewer ?? null);
   const row = db.prepare("SELECT * FROM interviews WHERE id = ?").get(result.lastInsertRowid) as Record<string, unknown>;
   res.status(201).json({ id: row.id, employeeId: row.employee_id, date: row.date, content: row.content, interviewer: row.interviewer ?? null, createdAt: row.created_at });
+});
+
+router.put("/interviews/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  const b = req.body;
+  db.prepare("UPDATE interviews SET date=?, content=?, interviewer=? WHERE id=?").run(b.date, b.content, b.interviewer ?? null, rid);
+  const row = db.prepare("SELECT * FROM interviews WHERE id=?").get(rid) as Record<string, unknown>;
+  res.json({ id: row.id, employeeId: row.employee_id, date: row.date, content: row.content, interviewer: row.interviewer ?? null, createdAt: row.created_at });
+});
+
+router.delete("/interviews/:rid", async (req, res): Promise<void> => {
+  const rid = parseInt(Array.isArray(req.params.rid) ? req.params.rid[0] : req.params.rid, 10);
+  db.prepare("DELETE FROM interviews WHERE id=?").run(rid);
+  res.status(204).end();
 });
 
 // ─── Foreigner Info ───────────────────────────────────────────────────────────

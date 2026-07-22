@@ -6,6 +6,7 @@ import { useCreateEmployee } from "@workspace/api-client-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
@@ -20,24 +21,34 @@ const formSchema = z.object({
   hireDate: z.string().min(1, "입사일을 입력해주세요."),
   phone: z.string().optional(),
   email: z.string().email("유효한 이메일 형식이 아닙니다.").optional().or(z.literal("")),
+  birthDate: z.string().optional(),
+  address: z.string().optional(),
+  nationality: z.string().optional(),
+  notes: z.string().optional(),
   isForeigner: z.boolean().default(false),
   visaType: z.string().optional(),
 });
+
+type FormValues = z.infer<typeof formSchema>;
 
 export default function EmployeeNew() {
   const [, setLocation] = useLocation();
   const createEmployee = useCreateEmployee();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       employeeNumber: "",
       name: "",
       department: "",
       position: "",
-      hireDate: new Date().toISOString().split('T')[0],
+      hireDate: new Date().toISOString().split("T")[0],
       phone: "",
       email: "",
+      birthDate: "",
+      address: "",
+      nationality: "",
+      notes: "",
       isForeigner: false,
       visaType: "",
     },
@@ -45,7 +56,7 @@ export default function EmployeeNew() {
 
   const isForeigner = form.watch("isForeigner");
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: FormValues) => {
     createEmployee.mutate(
       { data: values },
       {
@@ -55,7 +66,7 @@ export default function EmployeeNew() {
         },
         onError: () => {
           toast.error("직원 등록에 실패했습니다.");
-        }
+        },
       }
     );
   };
@@ -87,9 +98,7 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>성명 *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="홍길동" {...field} />
-                    </FormControl>
+                    <FormControl><Input placeholder="홍길동" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -100,9 +109,7 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>사번 *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="EMP-001" {...field} />
-                    </FormControl>
+                    <FormControl><Input placeholder="EMP-001" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -115,9 +122,7 @@ export default function EmployeeNew() {
                     <FormLabel>부서 *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="부서 선택" />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="부서 선택" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="경영지원본부">경영지원본부</SelectItem>
@@ -141,9 +146,7 @@ export default function EmployeeNew() {
                     <FormLabel>직급 *</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="직급 선택" />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="직급 선택" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="사원">사원</SelectItem>
@@ -165,9 +168,18 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>입사일 *</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
+                    <FormControl><Input type="date" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="birthDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>생년월일</FormLabel>
+                    <FormControl><Input type="date" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -178,9 +190,7 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>연락처</FormLabel>
-                    <FormControl>
-                      <Input placeholder="010-0000-0000" {...field} />
-                    </FormControl>
+                    <FormControl><Input placeholder="010-0000-0000" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -191,8 +201,41 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>이메일</FormLabel>
+                    <FormControl><Input type="email" placeholder="email@example.com" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="nationality"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>국적</FormLabel>
+                    <FormControl><Input placeholder="대한민국" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>주소</FormLabel>
+                    <FormControl><Input placeholder="주소를 입력하세요" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>비고</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="email@example.com" {...field} />
+                      <Textarea placeholder="특이사항을 입력하세요" rows={3} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -212,10 +255,7 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                     <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>외국인 근로자입니다</FormLabel>
@@ -226,7 +266,6 @@ export default function EmployeeNew() {
                   </FormItem>
                 )}
               />
-              
               {isForeigner && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2 duration-300">
                   <FormField
@@ -237,11 +276,10 @@ export default function EmployeeNew() {
                         <FormLabel>비자 종류</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="비자 종류 선택" />
-                            </SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder="비자 종류 선택" /></SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="E-7">E-7 (특정활동)</SelectItem>
                             <SelectItem value="E-9">E-9 (비전문취업)</SelectItem>
                             <SelectItem value="H-2">H-2 (방문취업)</SelectItem>
                             <SelectItem value="F-4">F-4 (재외동포)</SelectItem>
@@ -259,13 +297,12 @@ export default function EmployeeNew() {
           </Card>
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => setLocation("/employees")}>취소</Button>
+            <Button type="button" variant="outline" onClick={() => setLocation("/employees")}>
+              취소
+            </Button>
             <Button type="submit" disabled={createEmployee.isPending}>
               {createEmployee.isPending ? "저장 중..." : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  저장하기
-                </>
+                <><Save className="mr-2 h-4 w-4" />저장하기</>
               )}
             </Button>
           </div>
