@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -58,20 +59,25 @@ export default function EmployeeNew() {
 
   const isForeigner = form.watch("isForeigner");
 
+  // ── 등록 성공 후 안전한 화면 전환 ──────────────────────────────────────────
+  // onSuccess 콜백 내부는 React 18 concurrent 커밋 도중에 실행될 수 있어,
+  // 그 안에서 setLocation()을 호출하면 Radix Select의 Portal/Presence DOM
+  // 정리와 충돌해 "removeChild on Node" 오류가 발생합니다.
+  // useEffect는 React가 DOM 커밋을 완전히 끝낸 뒤에 실행되므로
+  // Select 상태·Portal 정리가 모두 완료된 시점에 navigation이 이루어집니다.
+  useEffect(() => {
+    if (!createEmployee.isSuccess) return;
+    queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+    toast.success("직원이 성공적으로 등록되었습니다.");
+    const timer = setTimeout(() => setLocation("/employees"), 0);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createEmployee.isSuccess]);
+
   const onSubmit = (values: FormValues) => {
     createEmployee.mutate(
       { data: values },
       {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
-          toast.success("직원이 성공적으로 등록되었습니다.");
-          // setTimeout으로 navigation을 다음 이벤트 루프 틱으로 미룸.
-          // React 18 concurrent 모드에서 onSuccess 호출 시점은 React의 커밋 단계 도중일 수 있으며,
-          // Radix UI SelectContent 등 Portal 컴포넌트의 removeChild 정리가 아직 진행 중인 상태에서
-          // 즉시 setLocation()을 호출하면 "removeChild on Node" 오류가 발생함.
-          // 0ms 지연으로 현재 커밋/언마운트 사이클이 완전히 끝난 뒤 화면 전환함.
-          setTimeout(() => setLocation("/employees"), 0);
-        },
         onError: () => {
           toast.error("직원 등록에 실패했습니다.");
         },

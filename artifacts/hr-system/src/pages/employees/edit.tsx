@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -65,16 +66,22 @@ function EmployeeEditForm({
 
   const isForeigner = form.watch("isForeigner");
 
+  // ── 수정 성공 후 안전한 화면 전환 ──────────────────────────────────────────
+  // new.tsx와 동일한 이유: onSuccess 콜백은 React 커밋 도중 실행될 수 있어
+  // Select Portal/Presence 정리와 충돌합니다. useEffect는 커밋 완료 후 실행됩니다.
+  useEffect(() => {
+    if (!updateEmployee.isSuccess) return;
+    queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(id) });
+    toast.success("직원 정보가 수정되었습니다.");
+    const timer = setTimeout(() => setLocation(`/employees/${id}`), 0);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [updateEmployee.isSuccess]);
+
   const onSubmit = (values: FormValues) => {
     updateEmployee.mutate(
       { id, data: values },
       {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(id) });
-          toast.success("직원 정보가 수정되었습니다.");
-          // new.tsx와 동일한 이유: Portal 언마운트 완료 후 전환
-          setTimeout(() => setLocation(`/employees/${id}`), 0);
-        },
         onError: () => {
           toast.error("직원 정보 수정에 실패했습니다.");
         },
