@@ -2,7 +2,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useLocation } from "wouter";
-import { useCreateEmployee } from "@workspace/api-client-react";
+import { useCreateEmployee, getListEmployeesQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function EmployeeNew() {
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const createEmployee = useCreateEmployee();
 
   const form = useForm<FormValues>({
@@ -60,9 +62,10 @@ export default function EmployeeNew() {
     createEmployee.mutate(
       { data: values },
       {
-        onSuccess: (data) => {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
           toast.success("직원이 성공적으로 등록되었습니다.");
-          setLocation(`/employees/${data.id}`);
+          setLocation("/employees");
         },
         onError: () => {
           toast.error("직원 등록에 실패했습니다.");

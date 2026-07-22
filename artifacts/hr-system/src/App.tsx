@@ -4,6 +4,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 import { Layout } from '@/components/layout';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 import Dashboard from '@/pages/dashboard';
 import Employees from '@/pages/employees/index';
@@ -37,7 +38,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
+          <ErrorBoundary>
+            <Router />
+          </ErrorBoundary>
         </WouterRouter>
         <Toaster position="top-right" richColors />
       </TooltipProvider>
