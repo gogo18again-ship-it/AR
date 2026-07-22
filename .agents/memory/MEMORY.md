@@ -1,1 +1,2 @@
 - [PostgreSQL 전환](pg-migration.md) — SQLite→PG 완료; drizzle-kit push로 스키마 관리, 시드는 dev 전용 seed.ts, 배포 시 데이터 유지됨.
+- [removeChild 배포 버그 수정](removechild-fix.md) — 직원 등록/수정 후 navigation 시 배포 환경에서만 발생하던 Radix removeChild 오류의 근본 원인 및 2단계 navigation 패턴.

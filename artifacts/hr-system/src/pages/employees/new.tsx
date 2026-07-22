@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -59,20 +59,46 @@ export default function EmployeeNew() {
 
   const isForeigner = form.watch("isForeigner");
 
-  // ── 등록 성공 후 안전한 화면 전환 ──────────────────────────────────────────
-  // onSuccess 콜백 내부는 React 18 concurrent 커밋 도중에 실행될 수 있어,
-  // 그 안에서 setLocation()을 호출하면 Radix Select의 Portal/Presence DOM
-  // 정리와 충돌해 "removeChild on Node" 오류가 발생합니다.
-  // useEffect는 React가 DOM 커밋을 완전히 끝낸 뒤에 실행되므로
-  // Select 상태·Portal 정리가 모두 완료된 시점에 navigation이 이루어집니다.
+  // ── 2단계 안전 네비게이션 ─────────────────────────────────────────────────
+  //
+  // 배포(프로덕션) 환경에서 `setLocation` 직접 호출 시 발생하는 문제:
+  //
+  // Radix UI의 SelectItem은 내부적으로 `ReactDOM.createPortal`로 선택된 텍스트를
+  // trigger valueNode에 렌더링합니다(@radix-ui/react-select v2 내부 구현).
+  // 또한 SelectContent는 Presence state machine으로 관리됩니다.
+  //
+  // 프로덕션 빌드에서 열기 애니메이션(data-[state=open]:animate-in 등)이
+  // 빠른 선택으로 인해 state=closed 상태에서 animationend를 발생시키면,
+  // Presence가 DOM 노드를 먼저 제거합니다.
+  // 이후 React fiber 클린업(navigation 언마운트)이 동일 노드를 다시 제거하려 시도하면
+  // "removeChild: The node to be removed is not a child of this node" 오류 발생.
+  //
+  // 해결책: 2단계 분리
+  //   Phase 1) mutation 성공 → transitioning=true → return null로 폼 언마운트
+  //            → React가 모든 Radix 컴포넌트(Select, Presence, Portal 등)를 정리
+  //   Phase 2) React commit 완료 → Radix DOM이 모두 사라진 상태 → setLocation 호출
+  //            → 이 시점에는 제거할 Radix 노드가 없으므로 removeChild 오류 없음
+  //
+  const [transitioning, setTransitioning] = useState(false);
+
   useEffect(() => {
     if (!createEmployee.isSuccess) return;
     queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
     toast.success("직원이 성공적으로 등록되었습니다.");
-    const timer = setTimeout(() => setLocation("/employees"), 0);
-    return () => clearTimeout(timer);
+    // Phase 1: 폼 언마운트 (모든 Radix 컴포넌트 정리)
+    setTransitioning(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createEmployee.isSuccess]);
+
+  useEffect(() => {
+    if (!transitioning) return;
+    // Phase 2: Radix DOM이 모두 제거된 뒤 navigate
+    setLocation("/employees");
+  }, [transitioning, setLocation]);
+
+  // transitioning=true → null을 반환해 React가 모든 자식 컴포넌트를 언마운트.
+  // setLocation은 다음 useEffect에서 호출되므로 이 시점에는 DOM이 이미 깨끗함.
+  if (transitioning) return null;
 
   const onSubmit = (values: FormValues) => {
     createEmployee.mutate(

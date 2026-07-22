@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useParams, useLocation } from "wouter";
-import { useGetEmployee, useUpdateEmployee, getGetEmployeeQueryKey } from "@workspace/api-client-react";
+import { useGetEmployee, useUpdateEmployee, getGetEmployeeQueryKey, GetEmployeeQueryResult } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ type FormValues = z.infer<typeof formSchema>;
 function EmployeeEditForm({
   employee,
 }: {
-  employee: NonNullable<ReturnType<typeof useGetEmployee>["data"]>;
+  employee: GetEmployeeQueryResult;
 }) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -66,17 +66,26 @@ function EmployeeEditForm({
 
   const isForeigner = form.watch("isForeigner");
 
-  // ── 수정 성공 후 안전한 화면 전환 ──────────────────────────────────────────
-  // new.tsx와 동일한 이유: onSuccess 콜백은 React 커밋 도중 실행될 수 있어
-  // Select Portal/Presence 정리와 충돌합니다. useEffect는 커밋 완료 후 실행됩니다.
+  // ── 2단계 안전 네비게이션 (new.tsx와 동일한 방식) ─────────────────────────
+  // Phase 1: mutation 성공 → transitioning=true → 이 컴포넌트가 null 반환
+  //          → React가 모든 자식(Select, Presence, Portal 등)을 언마운트 후 커밋
+  // Phase 2: React 커밋 완료 → Radix DOM 전부 사라짐 → setLocation 안전 호출
+  const [transitioning, setTransitioning] = useState(false);
+
   useEffect(() => {
     if (!updateEmployee.isSuccess) return;
     queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(id) });
     toast.success("직원 정보가 수정되었습니다.");
-    const timer = setTimeout(() => setLocation(`/employees/${id}`), 0);
-    return () => clearTimeout(timer);
+    setTransitioning(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updateEmployee.isSuccess]);
+
+  useEffect(() => {
+    if (!transitioning) return;
+    setLocation(`/employees/${id}`);
+  }, [transitioning, setLocation, id]);
+
+  if (transitioning) return null;
 
   const onSubmit = (values: FormValues) => {
     updateEmployee.mutate(

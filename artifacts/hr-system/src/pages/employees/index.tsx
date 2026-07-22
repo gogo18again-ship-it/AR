@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useListEmployees } from "@workspace/api-client-react";
+import { useListEmployees, type Employee } from "@workspace/api-client-react";
+
+// API 스키마에 아직 status 필드가 없어 런타임 캐스트 사용
+type EmployeeWithStatus = Employee & { status?: string };
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,12 +35,13 @@ export default function Employees() {
   // 탭별 카운트용 — 전체 목록을 한 번만 가져옴
   const { data: allEmployees } = useListEmployees({});
   const counts: Record<Status, number> = {
-    재직: allEmployees?.filter((e) => (e.status ?? "재직") === "재직").length ?? 0,
-    휴직: allEmployees?.filter((e) => e.status === "휴직").length ?? 0,
-    퇴사: allEmployees?.filter((e) => e.status === "퇴사").length ?? 0,
+    재직: (allEmployees as EmployeeWithStatus[] | undefined)?.filter((e) => (e.status ?? "재직") === "재직").length ?? 0,
+    휴직: (allEmployees as EmployeeWithStatus[] | undefined)?.filter((e) => e.status === "휴직").length ?? 0,
+    퇴사: (allEmployees as EmployeeWithStatus[] | undefined)?.filter((e) => e.status === "퇴사").length ?? 0,
   };
 
-  const { data: employees, isLoading } = useListEmployees({ status: activeStatus });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: employees, isLoading } = useListEmployees({ status: activeStatus } as any);
 
   const filtered = employees?.filter((emp) => {
     if (!searchTerm) return true;
@@ -119,7 +123,7 @@ export default function Employees() {
             </TableHeader>
             <TableBody>
               {filtered.map((emp) => {
-                const status = (emp.status ?? "재직") as Status;
+                const status = ((emp as EmployeeWithStatus).status ?? "재직") as Status;
                 const badge = STATUS_BADGE[status];
                 return (
                   <TableRow

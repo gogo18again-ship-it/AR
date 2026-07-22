@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { useGetEmployee, useGetEmployeeTimeline, getGetEmployeeQueryKey } from "@workspace/api-client-react";
+import { useGetEmployee, useGetEmployeeTimeline, getGetEmployeeQueryKey, getGetEmployeeTimelineQueryKey } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,7 +37,7 @@ export default function EmployeeDetail() {
     query: { enabled: !!id, queryKey: getGetEmployeeQueryKey(id) },
   });
   const { data: timeline } = useGetEmployeeTimeline(id, {
-    query: { enabled: !!id },
+    query: { enabled: !!id, queryKey: getGetEmployeeTimelineQueryKey(id) },
   });
 
   if (isLoading) return <LoadingState text="직원 상세 정보를 불러오는 중입니다..." />;
