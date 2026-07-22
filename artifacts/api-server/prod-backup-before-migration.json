@@ -1,0 +1,414 @@
+{
+  "timestamp": "2026-07-22T04:07:05.923Z",
+  "employees": [
+    {
+      "id": 6,
+      "employeeNumber": "200210-01",
+      "name": "박태진",
+      "department": "인사총무팀",
+      "position": "대리",
+      "hireDate": "2026-07-22",
+      "phone": "",
+      "isForeigner": false,
+      "visaType": "",
+      "visaExpiryDate": null,
+      "status": "재직",
+      "statusChangedAt": null,
+      "statusNote": null,
+      "createdAt": "2026-07-22 01:23:58"
+    },
+    {
+      "id": 1,
+      "employeeNumber": "EMP001",
+      "name": "김민준",
+      "department": "생산팀",
+      "position": "팀장",
+      "hireDate": "2020-03-02",
+      "phone": "010-1234-5678",
+      "isForeigner": false,
+      "visaType": null,
+      "visaExpiryDate": null,
+      "status": "재직",
+      "statusChangedAt": null,
+      "statusNote": null,
+      "createdAt": "2026-07-22 01:19:23"
+    },
+    {
+      "id": 2,
+      "employeeNumber": "EMP002",
+      "name": "이서연",
+      "department": "인사팀",
+      "position": "대리",
+      "hireDate": "2022-01-10",
+      "phone": "010-2345-6789",
+      "isForeigner": false,
+      "visaType": null,
+      "visaExpiryDate": null,
+      "status": "재직",
+      "statusChangedAt": null,
+      "statusNote": null,
+      "createdAt": "2026-07-22 01:19:23"
+    },
+    {
+      "id": 3,
+      "employeeNumber": "EMP003",
+      "name": "Nguyen Van An",
+      "department": "생산팀",
+      "position": "사원",
+      "hireDate": "2023-05-15",
+      "phone": "010-3456-7890",
+      "isForeigner": true,
+      "visaType": "E-9",
+      "visaExpiryDate": "2025-09-15",
+      "status": "재직",
+      "statusChangedAt": null,
+      "statusNote": null,
+      "createdAt": "2026-07-22 01:19:23"
+    },
+    {
+      "id": 4,
+      "employeeNumber": "EMP004",
+      "name": "박지훈",
+      "department": "품질팀",
+      "position": "과장",
+      "hireDate": "2019-07-08",
+      "phone": "010-4567-8901",
+      "isForeigner": false,
+      "visaType": null,
+      "visaExpiryDate": null,
+      "status": "재직",
+      "statusChangedAt": null,
+      "statusNote": null,
+      "createdAt": "2026-07-22 01:19:23"
+    },
+    {
+      "id": 5,
+      "employeeNumber": "EMP005",
+      "name": "Zhang Wei",
+      "department": "생산팀",
+      "position": "사원",
+      "hireDate": "2024-02-01",
+      "phone": "010-5678-9012",
+      "isForeigner": true,
+      "visaType": "E-7",
+      "visaExpiryDate": "2026-01-31",
+      "status": "재직",
+      "statusChangedAt": null,
+      "statusNote": null,
+      "createdAt": "2026-07-22 01:19:23"
+    }
+  ],
+  "history": {
+    "1": [
+      {
+        "id": 3,
+        "employeeId": 1,
+        "type": "승진",
+        "date": "2024-01-01",
+        "description": "팀장 승진",
+        "previousDepartment": null,
+        "newDepartment": null,
+        "previousPosition": "대리",
+        "newPosition": "팀장",
+        "createdAt": "2026-07-22 01:19:23"
+      },
+      {
+        "id": 2,
+        "employeeId": 1,
+        "type": "승진",
+        "date": "2022-01-01",
+        "description": "대리 승진",
+        "previousDepartment": null,
+        "newDepartment": null,
+        "previousPosition": "사원",
+        "newPosition": "대리",
+        "createdAt": "2026-07-22 01:19:23"
+      },
+      {
+        "id": 1,
+        "employeeId": 1,
+        "type": "입사",
+        "date": "2020-03-02",
+        "description": "생산팀 입사",
+        "previousDepartment": null,
+        "newDepartment": "생산팀",
+        "previousPosition": null,
+        "newPosition": "사원",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "2": [
+      {
+        "id": 5,
+        "employeeId": 2,
+        "type": "승진",
+        "date": "2024-01-01",
+        "description": "대리 승진",
+        "previousDepartment": null,
+        "newDepartment": null,
+        "previousPosition": "사원",
+        "newPosition": "대리",
+        "createdAt": "2026-07-22 01:19:23"
+      },
+      {
+        "id": 4,
+        "employeeId": 2,
+        "type": "입사",
+        "date": "2022-01-10",
+        "description": "인사팀 입사",
+        "previousDepartment": null,
+        "newDepartment": "인사팀",
+        "previousPosition": null,
+        "newPosition": "사원",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "3": [
+      {
+        "id": 6,
+        "employeeId": 3,
+        "type": "입사",
+        "date": "2023-05-15",
+        "description": "생산팀 입사 (E-9 비자)",
+        "previousDepartment": null,
+        "newDepartment": "생산팀",
+        "previousPosition": null,
+        "newPosition": "사원",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "4": [
+      {
+        "id": 9,
+        "employeeId": 4,
+        "type": "승진",
+        "date": "2023-07-01",
+        "description": "과장 승진",
+        "previousDepartment": null,
+        "newDepartment": null,
+        "previousPosition": "대리",
+        "newPosition": "과장",
+        "createdAt": "2026-07-22 01:19:23"
+      },
+      {
+        "id": 8,
+        "employeeId": 4,
+        "type": "승진",
+        "date": "2021-01-01",
+        "description": "대리 승진",
+        "previousDepartment": null,
+        "newDepartment": null,
+        "previousPosition": "사원",
+        "newPosition": "대리",
+        "createdAt": "2026-07-22 01:19:23"
+      },
+      {
+        "id": 7,
+        "employeeId": 4,
+        "type": "입사",
+        "date": "2019-07-08",
+        "description": "품질팀 입사",
+        "previousDepartment": null,
+        "newDepartment": "품질팀",
+        "previousPosition": null,
+        "newPosition": "사원",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "5": [
+      {
+        "id": 10,
+        "employeeId": 5,
+        "type": "입사",
+        "date": "2024-02-01",
+        "description": "생산팀 입사 (E-7 비자)",
+        "previousDepartment": null,
+        "newDepartment": "생산팀",
+        "previousPosition": null,
+        "newPosition": "사원",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "6": []
+  },
+  "education": {
+    "1": [
+      {
+        "id": 2,
+        "employeeId": 1,
+        "name": "리더십 역량 강화 과정",
+        "date": "2024-03-20",
+        "completed": true,
+        "certificateFile": null,
+        "notes": "팀장 대상 외부 교육",
+        "createdAt": "2026-07-22 01:19:23"
+      },
+      {
+        "id": 1,
+        "employeeId": 1,
+        "name": "산업안전보건교육",
+        "date": "2023-06-15",
+        "completed": true,
+        "certificateFile": null,
+        "notes": "연간 의무 안전교육 이수",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "2": [
+      {
+        "id": 3,
+        "employeeId": 2,
+        "name": "인사노무 실무 교육",
+        "date": "2023-09-05",
+        "completed": true,
+        "certificateFile": null,
+        "notes": "HR 전문성 향상",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "3": [
+      {
+        "id": 5,
+        "employeeId": 3,
+        "name": "한국어 교육",
+        "date": "2023-08-01",
+        "completed": true,
+        "certificateFile": null,
+        "notes": "기초 한국어 수료",
+        "createdAt": "2026-07-22 01:19:23"
+      },
+      {
+        "id": 4,
+        "employeeId": 3,
+        "name": "산업안전보건교육",
+        "date": "2023-07-10",
+        "completed": true,
+        "certificateFile": null,
+        "notes": "외국인 근로자 안전교육",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "4": [
+      {
+        "id": 7,
+        "employeeId": 4,
+        "name": "산업안전보건교육",
+        "date": "2025-08-20",
+        "completed": false,
+        "certificateFile": null,
+        "notes": "예정된 안전교육",
+        "createdAt": "2026-07-22 01:19:23"
+      },
+      {
+        "id": 6,
+        "employeeId": 4,
+        "name": "ISO 9001 내부심사원 교육",
+        "date": "2023-10-12",
+        "completed": true,
+        "certificateFile": null,
+        "notes": "품질경영시스템 심사원 자격 취득",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "5": [
+      {
+        "id": 8,
+        "employeeId": 5,
+        "name": "산업안전보건교육",
+        "date": "2024-05-10",
+        "completed": true,
+        "certificateFile": null,
+        "notes": "신규 입사자 안전교육",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "6": []
+  },
+  "rewards": {
+    "1": [
+      {
+        "id": 1,
+        "employeeId": 1,
+        "type": "포상",
+        "date": "2025-10-01",
+        "content": "2025년 우수 직원 표창 - 생산성 향상 기여",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "2": [],
+    "3": [],
+    "4": [
+      {
+        "id": 2,
+        "employeeId": 4,
+        "type": "포상",
+        "date": "2024-12-20",
+        "content": "ISO 심사 통과 기여 공로 포상",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "5": [],
+    "6": []
+  },
+  "disciplinary": {
+    "1": [],
+    "2": [],
+    "3": [
+      {
+        "id": 1,
+        "employeeId": 3,
+        "disciplinaryType": "주의",
+        "date": "2023-11-05",
+        "content": "작업장 안전수칙 미준수 - 구두 주의",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "4": [],
+    "5": [],
+    "6": []
+  },
+  "interviews": {
+    "1": [
+      {
+        "id": 1,
+        "employeeId": 1,
+        "date": "2025-03-20",
+        "content": "팀장 역할 적응 상태 확인. 팀원 관리 애로사항 청취. 리더십 지원 필요.",
+        "interviewer": "인사팀장",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "2": [
+      {
+        "id": 2,
+        "employeeId": 2,
+        "date": "2024-11-15",
+        "content": "업무 만족도 조사 면담. 현재 업무 만족도 양호.",
+        "interviewer": "인사팀장",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "3": [
+      {
+        "id": 3,
+        "employeeId": 3,
+        "date": "2024-01-10",
+        "content": "생활 적응 여부 및 건강 상태 확인 면담. 비자 갱신 안내.",
+        "interviewer": "인사담당",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "4": [],
+    "5": [
+      {
+        "id": 4,
+        "employeeId": 5,
+        "date": "2024-06-15",
+        "content": "입사 후 4개월 적응 면담. 업무 이해도 양호.",
+        "interviewer": "인사담당",
+        "createdAt": "2026-07-22 01:19:23"
+      }
+    ],
+    "6": []
+  }
+}
