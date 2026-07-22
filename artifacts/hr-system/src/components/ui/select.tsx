@@ -69,31 +69,38 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
-    <SelectPrimitive.Content
-      ref={ref}
+  // Portal을 제거하고 인라인으로 렌더링합니다.
+  // SelectPrimitive.Portal이 document.body에 Portal을 마운트하면,
+  // Select 닫힘 애니메이션(data-[state=closed]:animate-out) 진행 중에
+  // 저장 버튼을 클릭하면 React 18 concurrent 모드에서 Portal DOM 정리와
+  // mutation 상태 업데이트가 같은 커밋 단계에 배치되어
+  // "removeChild: node is not a child" 오류가 발생합니다.
+  // Portal 없이 인라인으로 렌더링하면 React가 가상 DOM 트리 내에서
+  // 정상적으로 마운트/언마운트를 관리하므로 이 충돌이 사라집니다.
+  // (Card/CardContent에 overflow:hidden 없으므로 드롭다운 표시에 문제 없음)
+  <SelectPrimitive.Content
+    ref={ref}
+    className={cn(
+      "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      position === "popper" &&
+        "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+      className
+    )}
+    position={position}
+    {...props}
+  >
+    <SelectScrollUpButton />
+    <SelectPrimitive.Viewport
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        "p-1",
         position === "popper" &&
-          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
-        className
+          "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
       )}
-      position={position}
-      {...props}
     >
-      <SelectScrollUpButton />
-      <SelectPrimitive.Viewport
-        className={cn(
-          "p-1",
-          position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
-        )}
-      >
-        {children}
-      </SelectPrimitive.Viewport>
-      <SelectScrollDownButton />
-    </SelectPrimitive.Content>
-  </SelectPrimitive.Portal>
+      {children}
+    </SelectPrimitive.Viewport>
+    <SelectScrollDownButton />
+  </SelectPrimitive.Content>
 ))
 SelectContent.displayName = SelectPrimitive.Content.displayName
 
