@@ -1,0 +1,1 @@
+- [PostgreSQL 전환](pg-migration.md) — SQLite→PG 완료; drizzle-kit push로 스키마 관리, 시드는 dev 전용 seed.ts, 배포 시 데이터 유지됨.
