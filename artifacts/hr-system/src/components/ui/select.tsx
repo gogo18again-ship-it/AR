@@ -81,42 +81,34 @@ const SelectContent = React.forwardRef<
   <SelectPrimitive.Content
     ref={ref}
     className={cn(
-      // ─── 애니메이션 클래스 전체 제거 (열기·닫기·슬라이드 모두) ──────────────
+      // ─── 닫기 애니메이션 클래스만 제거 ───────────────────────────────────────
       //
-      // 근본 원인 (Radix react-presence + react-select 소스 추적으로 확인):
+      // 근본 원인 (Radix react-presence 소스 line 96-107 추적으로 확인):
       //
-      // 1. 열기 애니메이션(data-[state=open]:animate-in 등)이 있으면
-      //    animationstart 이벤트가 발생하고, Presence의 handleAnimationStart
-      //    콜백이 prevAnimationNameRef.current = "enter"(또는 실제 keyframe 이름)로 업데이트.
+      // Presence useLayoutEffect: present=false 로 전환될 때
+      //   1) currentAnimationName === "none" → send("UNMOUNT") 직접 실행  ← 현재 상태(닫기 애니메이션 없음)
+      //   2) currentAnimationName !== "none" → isAnimating 체크 → send("ANIMATION_OUT") → unmountSuspended
       //
-      // 2. 사용자가 항목을 빠르게 선택하면 context.open=false → present=false.
-      //    이때 Presence useLayoutEffect 내에서:
-      //      prevAnimationName("enter") ≠ currentAnimationName("none")
-      //      → isAnimating=true → send("ANIMATION_OUT") → unmountSuspended 상태.
+      // 닫기 애니메이션(data-[state=closed]:animate-out zoom-out-95 fade-out-0)이 있으면:
+      //   - data-state="closed" 시점에 computedStyle.animationName != "none"
+      //   - → ANIMATION_OUT → unmountSuspended → SelectContentImpl 아직 렌더됨
+      //   - 이후 animationend → ANIMATION_END → unmounted → SelectContentFragment 렌더
+      //   - 이 두 커밋 사이에 form 언마운트(navigation)가 끼어들면:
+      //       SelectItemText의 portal(context.valueNode) 조작이 충돌
+      //       → removeChild / insertBefore 실패
       //
-      // 3. unmountSuspended에서 Presence는 SelectContentImpl 대신
-      //    SelectContentFragment를 렌더링 (react-select 소스 line 357, 361).
-      //    SelectContentFragment({ fragment }): fragment가 있으면 ReactDOM.createPortal로
-      //    children을 별도 DOM 노드에 렌더링함.
+      // 열기 애니메이션은 이 경로와 무관:
+      //   close 시 currentAnimationName 체크만 하므로 open 애니메이션 유무는 관계없음.
       //
-      // 4. SelectContentImpl→SelectContentFragment 전환 시:
-      //    - SelectContentImpl 언마운트 → 내부 SelectItem 언마운트
-      //      → Portal cleanup: context.valueNode(=SelectTrigger의 <button>)에서 removeChild
-      //    - 동시에 SelectContentFragment 마운트 → Portal 재생성: valueNode에 insertBefore
-      //    이 두 Portal 조작이 React 19 concurrent 모드 프로덕션 빌드에서 동시에
-      //    커밋되면 removeChild/insertBefore 실패 → ErrorBoundary 발동.
-      //
-      // 5. component stack에 "button"이 표시되는 이유:
-      //    SelectTrigger가 <button role="combobox">로 렌더링되고,
-      //    context.valueNode(portale 대상)가 이 button 내부의 span이기 때문.
-      //
-      // 수정: CSS 애니메이션 클래스를 모두 제거하면:
-      //    animationstart 미발생 → prevAnimationNameRef = "none" 유지
-      //    → prevAnimationName("none") = currentAnimationName("none")
-      //    → isAnimating=false → send("UNMOUNT") 직접 실행
-      //    → unmountSuspended 진입 없음 → Portal 충돌 없음.
+      // component stack에 "button"이 표시되는 이유:
+      //   SelectItemText (line 1034, @radix-ui/react-select) :
+      //   ReactDOM.createPortal(itemTextProps.children, context.valueNode)
+      //   context.valueNode = SelectValue <span> inside SelectTrigger <button>
       //
       "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
+      // 열기 애니메이션 (open animations) — close 경로와 무관하므로 복원
+      "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+      "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
       position === "popper" &&
         "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
       className

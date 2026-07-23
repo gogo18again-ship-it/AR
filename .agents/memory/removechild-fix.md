@@ -1,51 +1,95 @@
 ---
 name: removeChild 배포 버그 수정
-description: Radix UI Select + Presence + Portal 조합에서 배포(production) 환경에서만 발생하는 removeChild 오류의 근본 원인과 해결 패턴
+description: Radix UI Select + Presence 조합에서 배포(production) 환경에서만 발생하는 removeChild/insertBefore 오류의 근본 원인과 해결 패턴 (소스코드 추적 완료)
 ---
 
-## 근본 원인
+## 근본 원인 (소스코드 추적으로 확인됨)
 
-`@radix-ui/react-select`의 `SelectItem`은 내부적으로 항상 `ReactDOM.createPortal`을 사용해 선택된 텍스트를 trigger의 `valueNode`에 렌더링한다 (외부 `SelectPrimitive.Portal` 제거와 무관).
+### SelectItemText portal 메커니즘 (`@radix-ui/react-select` v2.3.3, line 1034)
 
-`SelectContent` 내부에서 `@radix-ui/react-presence`의 `Presence`가 DOM 노드 생명주기를 관리한다.
+```javascript
+// SelectItemText 렌더 내부:
+itemContext.isSelected && context.valueNode && !context.valueNodeHasChildren && !shouldShowPlaceholder(context.value)
+  ? ReactDOM.createPortal(itemTextProps.children, context.valueNode)
+  : null
+```
 
-**충돌 시나리오 (production 빌드에서만):**
+선택된 SelectItem의 텍스트가 **`context.valueNode` (SelectValue `<span>`) 에 portal됨**.
+`context.valueNode`는 SelectTrigger `<button>` 내부에 있음 → 컴포넌트 스택에 `button`이 표시되는 이유.
 
-1. 사용자가 Select를 열면 open 애니메이션(`data-[state=open]:animate-in` 등)이 시작됨
-2. 빠른 선택으로 애니메이션 종료 전 `present=false`로 전환
-3. Presence의 `useLayoutEffect`가 `currentAnimationName`을 확인:
-   - close 애니메이션이 없으면 즉시 `UNMOUNT` → 동기적 언마운트
-4. 그러나 내부 Portal(valueNode에 연결된)이 React fiber와 다른 순서로 정리됨
-5. navigation 시 `setLocation` 호출 → React가 `EmployeeNew`를 언마운트하면서 fiber 클린업
-6. 이미 Presence/Portal이 제거한 DOM 노드를 React가 다시 `removeChild` 시도 → `NotFoundError`
+### SelectContent의 이중 Portal 구조
 
-**배포 환경에서만 재현되는 이유:** 프로덕션 React는 최적화 빌드라 처리 속도가 달라 타이밍 경쟁 조건이 발생함. 개발 환경은 느린 처리로 타이밍이 맞지 않아 재현 안 됨.
+Select 닫혀 있을 때:
+- `SelectContentFragment` → `ReactDOM.createPortal(children, DocumentFragment)` (오프스크린)
+- 그 안의 selected SelectItem → `ReactDOM.createPortal(text, context.valueNode)` (button 내부 span)
 
-## 해결책: 2단계 안전 navigation 패턴
+### Presence 닫기 경로 (`@radix-ui/react-presence` line 96-107)
 
-React가 모든 Radix 컴포넌트를 먼저 언마운트한 뒤 navigate 하도록 분리.
+```javascript
+if (currentAnimationName === "none" || styles?.display === "none") {
+  send("UNMOUNT");   // ← 닫기 애니메이션 없으면 직접 UNMOUNT
+} else {
+  if (wasPresent && isAnimating) send("ANIMATION_OUT");  // → unmountSuspended
+  else send("UNMOUNT");
+}
+```
 
+### 실패 경로 (닫기 애니메이션 있을 때)
+
+1. 항목 선택 → context.open=false → `data-state="closed"` + 닫기 애니메이션 클래스 적용
+2. `currentAnimationName !== "none"` → `ANIMATION_OUT` → **unmountSuspended** (SelectContentImpl 아직 렌더됨)
+3. 뮤테이션 성공 → navigation/setAddOpen(false) → form 언마운트 커밋
+4. animationend 이벤트 → `ANIMATION_END` → unmounted → SelectContentFragment 커밋
+5. 두 커밋(3, 4) 사이에 `context.valueNode` portal 조작 충돌:
+   - removeChild 실패: `context.valueNode.removeChild(text)` — text 이미 제거됨
+   - insertBefore 실패: `context.valueNode.insertBefore(text_new, text_old)` — text_old 이미 없음
+
+### 열기 애니메이션은 무관
+
+close 경로는 `currentAnimationName`만 체크. 열기 애니메이션 유무는 Presence 닫기 동작에 영향 없음.
+
+## 적용된 해결책
+
+### 1. 닫기 애니메이션 제거 (핵심 수정)
+`select.tsx` SelectContent className에서 `data-[state=closed]:animate-out zoom-out-95 fade-out-0` 제거.
+→ 닫힐 때 `currentAnimationName === "none"` → UNMOUNT 직행 → unmountSuspended 없음 → 두 커밋 경쟁 없음.
+
+열기 애니메이션(`data-[state=open]:animate-in` 등)은 유지 (close 경로와 무관).
+
+### 2. 2단계 안전 navigation 패턴 (new.tsx, edit.tsx)
 ```tsx
-// Phase 1: mutation 성공 → transitioning=true → return null로 폼 언마운트
-// Phase 2: React commit 완료 → Radix DOM 전부 제거됨 → setLocation 안전 호출
-
 const [transitioning, setTransitioning] = useState(false);
 
 useEffect(() => {
   if (!someMutation.isSuccess) return;
   queryClient.invalidateQueries({ queryKey: ... });
   toast.success("...");
-  setTransitioning(true); // Phase 1: trigger unmount
+  setTransitioning(true); // Phase 1: 폼 언마운트
 }, [someMutation.isSuccess]);
 
 useEffect(() => {
   if (!transitioning) return;
-  setLocation("/target"); // Phase 2: navigate after Radix cleanup
+  setLocation("/target"); // Phase 2: Radix DOM 정리 후 navigate
 }, [transitioning, setLocation]);
 
-if (transitioning) return null; // 폼 컴포넌트 전체 언마운트
+if (transitioning) return null;
 ```
 
-**Why:** `setLocation`을 직접 호출하면 React가 현재 컴포넌트를 언마운트하면서 Radix DOM을 정리하는 시점에 Portal/Presence 정리와 충돌. `return null`로 먼저 자식을 언마운트해두면 `setLocation` 시점에 정리할 Radix 노드가 없음.
+### 3. SelectContent Portal 제거 (별도 적용됨)
+`SelectPrimitive.Portal` 래퍼를 제거하고 인라인 렌더링.
+이 변경의 독립적 효과는 미확인이나, 닫기 애니메이션 제거가 핵심 수정임.
 
-**How to apply:** Radix Select/Combobox/Dialog 등 Portal을 사용하는 컴포넌트가 있는 form 페이지에서 navigation 성공 시 이 패턴 사용. `new.tsx`, `edit.tsx` 양쪽에 적용됨.
+## v3 = App
+
+프로덕션 번들 마지막 줄: `CE.createRoot(document.getElementById("root")).render(c.jsx(v3,{}))`
+→ `v3 = App` (src/App.tsx). 컴포넌트 스택에서 v3는 루트 컴포넌트.
+
+## 데스크탑 전용 발생
+
+Layout은 CSS-only 반응형 (`hidden md:flex`). React 파이버 트리는 모바일/데스크탑 동일.
+소스코드만으로는 데스크탑 전용 이유 미증명 — DOM 인터셉터 런타임 출력 필요.
+(현재 빌드에 DOM 인터셉터 + sourcemap 포함됨, 배포 후 확인 가능)
+
+**Why:** 닫기 애니메이션 제거가 `unmountSuspended` 경쟁 조건을 차단함.
+
+**How to apply:** Radix Select가 있는 폼 페이지 전체에 공통 적용 (select.tsx 수정으로 전역 효과).
