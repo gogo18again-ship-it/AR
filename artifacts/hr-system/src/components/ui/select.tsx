@@ -8,16 +8,27 @@ const Select = SelectPrimitive.Root
 
 const SelectGroup = SelectPrimitive.Group
 
-const SelectValue = SelectPrimitive.Value
+// SelectValue: translate="no" 직접 부여
+//
+// 브라우저 자동번역·수동번역 모두 방어하려면 HTML 상속에 의존하지 않고
+// context.valueNode가 되는 <span>에 translate 속성을 직접 설정해야 합니다.
+// Radix SelectItemText는 ReactDOM.createPortal(text, context.valueNode)로
+// 선택 값 텍스트를 이 span에 동적으로 삽입합니다. Edge/Chrome의 번역 엔진은
+// JavaScript로 동적 삽입된 텍스트 노드를 재스캔할 때 조상 요소의 translate
+// 속성을 무시하는 버그가 있으므로, span 자체에 translate="no"가 필요합니다.
+const SelectValue = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Value>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Value>
+>(({ ...props }, ref) => (
+  <SelectPrimitive.Value ref={ref} translate="no" {...props} />
+))
+SelectValue.displayName = SelectPrimitive.Value.displayName
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
-  // translate="no": 브라우저 자동번역이 SelectValue 내부 텍스트 노드를 교체하면
-  // Radix의 SelectItemText portal(context.valueNode)과 React DOM이 충돌해
-  // removeChild/insertBefore NotFoundError가 발생합니다.
-  // 버튼에만 번역 제외를 적용해 선택 값 표시 영역을 보호합니다.
+  // translate="no": SelectValue 텍스트 노드를 포함하는 버튼 전체 보호 (1차 방어)
   <SelectPrimitive.Trigger
     ref={ref}
     translate="no"
@@ -75,8 +86,13 @@ const SelectContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => (
   <SelectPrimitive.Portal>
+    {/* translate="no": 드롭다운 목록 아이템 텍스트 보호.
+        SelectContent는 document.body Portal로 렌더링되므로
+        #root 바깥에 위치합니다. translate="no"를 직접 설정하지 않으면
+        브라우저 번역 엔진이 아이템 텍스트를 번역할 수 있습니다. */}
     <SelectPrimitive.Content
       ref={ref}
+      translate="no"
       className={cn(
         "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
         "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",

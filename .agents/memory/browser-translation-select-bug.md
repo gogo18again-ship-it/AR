@@ -26,12 +26,29 @@ Radix Select는 `SelectItemText`에서 `ReactDOM.createPortal(text, context.valu
 페이지 선언 언어와 사용자 언어가 일치하면 브라우저가 번역을 제안/자동 적용하지 않음.
 기존 `lang="en"` 이 한국어 콘텐츠에서 번역을 유발하던 근본 원인.
 
-### 2. `select.tsx` SelectTrigger — `translate="no"` (방어 계층)
+### 2. `select.tsx` SelectValue — `translate="no"` 직접 부여 (핵심 방어)
+```tsx
+const SelectValue = React.forwardRef(({ ...props }, ref) => (
+  <SelectPrimitive.Value ref={ref} translate="no" {...props} />
+))
+```
+context.valueNode가 되는 span 자체에 직접 부여해야 함.
+HTML 상속(button → span)만으로는 Edge 수동 번역이 동적 삽입 텍스트를 재스캔할 때
+조상 translate 속성을 무시하는 버그를 회피하지 못함.
+
+### 3. `select.tsx` SelectTrigger — `translate="no"` (1차 방어)
 ```tsx
 <SelectPrimitive.Trigger translate="no" ...>
 ```
-lang 선언이 있어도 사용자가 강제 번역하는 경우를 대비한 2차 방어.
-SelectValue 텍스트 노드가 있는 버튼 요소에만 적용 (과도 적용 없음).
+버튼 전체 보호. SelectValue에 직접 부여와 함께 적용.
+
+### 4. `select.tsx` SelectContent — `translate="no"` (드롭다운 보호)
+```tsx
+<SelectPrimitive.Content translate="no" ...>
+```
+SelectContent는 document.body Portal로 렌더링되므로 #root 바깥에 위치.
+직접 설정하지 않으면 번역 엔진이 드롭다운 아이템 텍스트를 번역.
+아이템 텍스트가 번역되면 SelectItemText portal 소스도 영향받을 수 있음.
 
 ### 3. `select.tsx` — Portal + 닫기 애니메이션 복원
 Portal 제거, 닫기 애니메이션 제거는 이전 세션에서 적용한 임시 회피책.
