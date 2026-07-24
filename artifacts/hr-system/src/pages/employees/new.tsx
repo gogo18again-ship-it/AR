@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,6 +14,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+
+// ── FLOW TRACE 헬퍼 ────────────────────────────────────────────────────────
+const ft = (event: string) =>
+  console.error(`[FLOW TRACE][직원등록][${event}][${Date.now()}]`);
+// ──────────────────────────────────────────────────────────────────────────
 
 const formSchema = z.object({
   employeeNumber: z.string().min(1, "사번을 입력해주세요."),
@@ -60,51 +65,44 @@ export default function EmployeeNew() {
   const isForeigner = form.watch("isForeigner");
 
   // ── 2단계 안전 네비게이션 ─────────────────────────────────────────────────
-  //
-  // 배포(프로덕션) 환경에서 `setLocation` 직접 호출 시 발생하는 문제:
-  //
-  // Radix UI의 SelectItem은 내부적으로 `ReactDOM.createPortal`로 선택된 텍스트를
-  // trigger valueNode에 렌더링합니다(@radix-ui/react-select v2 내부 구현).
-  // 또한 SelectContent는 Presence state machine으로 관리됩니다.
-  //
-  // 프로덕션 빌드에서 열기 애니메이션(data-[state=open]:animate-in 등)이
-  // 빠른 선택으로 인해 state=closed 상태에서 animationend를 발생시키면,
-  // Presence가 DOM 노드를 먼저 제거합니다.
-  // 이후 React fiber 클린업(navigation 언마운트)이 동일 노드를 다시 제거하려 시도하면
-  // "removeChild: The node to be removed is not a child of this node" 오류 발생.
-  //
-  // 해결책: 2단계 분리
-  //   Phase 1) mutation 성공 → transitioning=true → return null로 폼 언마운트
-  //            → React가 모든 Radix 컴포넌트(Select, Presence, Portal 등)를 정리
-  //   Phase 2) React commit 완료 → Radix DOM이 모두 사라진 상태 → setLocation 호출
-  //            → 이 시점에는 제거할 Radix 노드가 없으므로 removeChild 오류 없음
-  //
   const [transitioning, setTransitioning] = useState(false);
+
+  // 컴포넌트 생명주기 추적
+  useEffect(() => {
+    ft('컴포넌트 mount');
+    return () => { ft('컴포넌트 cleanup/unmount'); };
+  }, []);
 
   useEffect(() => {
     if (!createEmployee.isSuccess) return;
-    queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
+    ft('mutation 성공');
+    ft('query invalidation 시작');
+    queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() }).then(() => {
+      ft('query invalidation 완료');
+    });
+    ft('toast 호출');
     toast.success("직원이 성공적으로 등록되었습니다.");
-    // Phase 1: 폼 언마운트 (모든 Radix 컴포넌트 정리)
+    ft('navigation 호출 직전');
     setTransitioning(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createEmployee.isSuccess]);
 
   useEffect(() => {
     if (!transitioning) return;
-    // Phase 2: Radix DOM이 모두 제거된 뒤 navigate
+    ft('navigation 호출');
     setLocation("/employees");
   }, [transitioning, setLocation]);
 
-  // transitioning=true → null을 반환해 React가 모든 자식 컴포넌트를 언마운트.
-  // setLocation은 다음 useEffect에서 호출되므로 이 시점에는 DOM이 이미 깨끗함.
   if (transitioning) return null;
 
   const onSubmit = (values: FormValues) => {
+    ft('submit 시작');
+    ft('mutation 호출 직전');
     createEmployee.mutate(
       { data: values },
       {
         onError: () => {
+          ft('mutation 오류');
           toast.error("직원 등록에 실패했습니다.");
         },
       }
@@ -160,7 +158,11 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>부서 *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={(v) => { ft(`Select value 변경: department=${v}`); field.onChange(v); }}
+                      onOpenChange={(open) => { ft(`Select open 상태 변경: department open=${open}`); }}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger><SelectValue placeholder="부서 선택" /></SelectTrigger>
                       </FormControl>
@@ -184,7 +186,11 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>직급 *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={(v) => { ft(`Select value 변경: position=${v}`); field.onChange(v); }}
+                      onOpenChange={(open) => { ft(`Select open 상태 변경: position open=${open}`); }}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger><SelectValue placeholder="직급 선택" /></SelectTrigger>
                       </FormControl>
@@ -314,7 +320,11 @@ export default function EmployeeNew() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>비자 종류</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={(v) => { ft(`Select value 변경: visaType=${v}`); field.onChange(v); }}
+                          onOpenChange={(open) => { ft(`Select open 상태 변경: visaType open=${open}`); }}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger><SelectValue placeholder="비자 종류 선택" /></SelectTrigger>
                           </FormControl>

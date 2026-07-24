@@ -16,6 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { LoadingState } from "@/components/ui/states";
 
+// ── FLOW TRACE 헬퍼 ────────────────────────────────────────────────────────
+const ft = (event: string) =>
+  console.error(`[FLOW TRACE][직원수정][${event}][${Date.now()}]`);
+// ──────────────────────────────────────────────────────────────────────────
+
 const formSchema = z.object({
   employeeNumber: z.string().min(1, "사번을 입력해주세요."),
   name: z.string().min(1, "성명을 입력해주세요."),
@@ -66,32 +71,45 @@ function EmployeeEditForm({
 
   const isForeigner = form.watch("isForeigner");
 
-  // ── 2단계 안전 네비게이션 (new.tsx와 동일한 방식) ─────────────────────────
-  // Phase 1: mutation 성공 → transitioning=true → 이 컴포넌트가 null 반환
-  //          → React가 모든 자식(Select, Presence, Portal 등)을 언마운트 후 커밋
-  // Phase 2: React 커밋 완료 → Radix DOM 전부 사라짐 → setLocation 안전 호출
+  // ── 2단계 안전 네비게이션 ─────────────────────────────────────────────────
   const [transitioning, setTransitioning] = useState(false);
+
+  // 컴포넌트 생명주기 추적
+  useEffect(() => {
+    ft('컴포넌트 mount (EmployeeEditForm)');
+    return () => { ft('컴포넌트 cleanup/unmount (EmployeeEditForm)'); };
+  }, []);
 
   useEffect(() => {
     if (!updateEmployee.isSuccess) return;
-    queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(id) });
+    ft('mutation 성공');
+    ft('query invalidation 시작');
+    queryClient.invalidateQueries({ queryKey: getGetEmployeeQueryKey(id) }).then(() => {
+      ft('query invalidation 완료');
+    });
+    ft('toast 호출');
     toast.success("직원 정보가 수정되었습니다.");
+    ft('navigation 호출 직전');
     setTransitioning(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updateEmployee.isSuccess]);
 
   useEffect(() => {
     if (!transitioning) return;
+    ft('navigation 호출');
     setLocation(`/employees/${id}`);
   }, [transitioning, setLocation, id]);
 
   if (transitioning) return null;
 
   const onSubmit = (values: FormValues) => {
+    ft('submit 시작');
+    ft('mutation 호출 직전');
     updateEmployee.mutate(
       { id, data: values },
       {
         onError: () => {
+          ft('mutation 오류');
           toast.error("직원 정보 수정에 실패했습니다.");
         },
       }
@@ -134,7 +152,11 @@ function EmployeeEditForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>부서 *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(v) => { ft(`Select value 변경: department=${v}`); field.onChange(v); }}
+                    onOpenChange={(open) => { ft(`Select open 상태 변경: department open=${open}`); }}
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger><SelectValue placeholder="부서 선택" /></SelectTrigger>
                     </FormControl>
@@ -158,7 +180,11 @@ function EmployeeEditForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>직급 *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select
+                    onValueChange={(v) => { ft(`Select value 변경: position=${v}`); field.onChange(v); }}
+                    onOpenChange={(open) => { ft(`Select open 상태 변경: position open=${open}`); }}
+                    value={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger><SelectValue placeholder="직급 선택" /></SelectTrigger>
                     </FormControl>
@@ -286,7 +312,11 @@ function EmployeeEditForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>비자 종류</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select
+                        onValueChange={(v) => { ft(`Select value 변경: visaType=${v}`); field.onChange(v); }}
+                        onOpenChange={(open) => { ft(`Select open 상태 변경: visaType open=${open}`); }}
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger><SelectValue placeholder="비자 종류 선택" /></SelectTrigger>
                         </FormControl>
@@ -328,6 +358,11 @@ export default function EmployeeEdit() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    ft('컴포넌트 mount (EmployeeEdit wrapper)');
+    return () => { ft('컴포넌트 cleanup/unmount (EmployeeEdit wrapper)'); };
+  }, []);
 
   const { data: employee, isLoading } = useGetEmployee(id, {
     query: { enabled: !!id, queryKey: getGetEmployeeQueryKey(id) },
