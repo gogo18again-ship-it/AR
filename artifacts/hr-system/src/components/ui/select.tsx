@@ -14,8 +14,13 @@ const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
+  // translate="no": 브라우저 자동번역이 SelectValue 내부 텍스트 노드를 교체하면
+  // Radix의 SelectItemText portal(context.valueNode)과 React DOM이 충돌해
+  // removeChild/insertBefore NotFoundError가 발생합니다.
+  // 버튼에만 번역 제외를 적용해 선택 값 표시 영역을 보호합니다.
   <SelectPrimitive.Trigger
     ref={ref}
+    translate="no"
     className={cn(
       "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className
@@ -69,65 +74,34 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => (
-  // Portal을 제거하고 인라인으로 렌더링합니다.
-  // SelectPrimitive.Portal이 document.body에 Portal을 마운트하면,
-  // Select 닫힘 애니메이션(data-[state=closed]:animate-out) 진행 중에
-  // 저장 버튼을 클릭하면 React 18 concurrent 모드에서 Portal DOM 정리와
-  // mutation 상태 업데이트가 같은 커밋 단계에 배치되어
-  // "removeChild: node is not a child" 오류가 발생합니다.
-  // Portal 없이 인라인으로 렌더링하면 React가 가상 DOM 트리 내에서
-  // 정상적으로 마운트/언마운트를 관리하므로 이 충돌이 사라집니다.
-  // (Card/CardContent에 overflow:hidden 없으므로 드롭다운 표시에 문제 없음)
-  <SelectPrimitive.Content
-    ref={ref}
-    className={cn(
-      // ─── 닫기 애니메이션 클래스만 제거 ───────────────────────────────────────
-      //
-      // 근본 원인 (Radix react-presence 소스 line 96-107 추적으로 확인):
-      //
-      // Presence useLayoutEffect: present=false 로 전환될 때
-      //   1) currentAnimationName === "none" → send("UNMOUNT") 직접 실행  ← 현재 상태(닫기 애니메이션 없음)
-      //   2) currentAnimationName !== "none" → isAnimating 체크 → send("ANIMATION_OUT") → unmountSuspended
-      //
-      // 닫기 애니메이션(data-[state=closed]:animate-out zoom-out-95 fade-out-0)이 있으면:
-      //   - data-state="closed" 시점에 computedStyle.animationName != "none"
-      //   - → ANIMATION_OUT → unmountSuspended → SelectContentImpl 아직 렌더됨
-      //   - 이후 animationend → ANIMATION_END → unmounted → SelectContentFragment 렌더
-      //   - 이 두 커밋 사이에 form 언마운트(navigation)가 끼어들면:
-      //       SelectItemText의 portal(context.valueNode) 조작이 충돌
-      //       → removeChild / insertBefore 실패
-      //
-      // 열기 애니메이션은 이 경로와 무관:
-      //   close 시 currentAnimationName 체크만 하므로 open 애니메이션 유무는 관계없음.
-      //
-      // component stack에 "button"이 표시되는 이유:
-      //   SelectItemText (line 1034, @radix-ui/react-select) :
-      //   ReactDOM.createPortal(itemTextProps.children, context.valueNode)
-      //   context.valueNode = SelectValue <span> inside SelectTrigger <button>
-      //
-      "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
-      // 열기 애니메이션 (open animations) — close 경로와 무관하므로 복원
-      "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
-      "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-      position === "popper" &&
-        "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
-      className
-    )}
-    position={position}
-    {...props}
-  >
-    <SelectScrollUpButton />
-    <SelectPrimitive.Viewport
+  <SelectPrimitive.Portal>
+    <SelectPrimitive.Content
+      ref={ref}
       className={cn(
-        "p-1",
+        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
+        "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
+        "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+        "data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
         position === "popper" &&
-          "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
+        className
       )}
+      position={position}
+      {...props}
     >
-      {children}
-    </SelectPrimitive.Viewport>
-    <SelectScrollDownButton />
-  </SelectPrimitive.Content>
+      <SelectScrollUpButton />
+      <SelectPrimitive.Viewport
+        className={cn(
+          "p-1",
+          position === "popper" &&
+            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+        )}
+      >
+        {children}
+      </SelectPrimitive.Viewport>
+      <SelectScrollDownButton />
+    </SelectPrimitive.Content>
+  </SelectPrimitive.Portal>
 ))
 SelectContent.displayName = SelectPrimitive.Content.displayName
 

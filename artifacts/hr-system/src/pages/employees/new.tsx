@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,11 +14,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-
-// ── FLOW TRACE 헬퍼 ────────────────────────────────────────────────────────
-const ft = (event: string) =>
-  console.error(`[FLOW TRACE][직원등록][${event}][${Date.now()}]`);
-// ──────────────────────────────────────────────────────────────────────────
 
 const formSchema = z.object({
   employeeNumber: z.string().min(1, "사번을 입력해주세요."),
@@ -64,45 +59,31 @@ export default function EmployeeNew() {
 
   const isForeigner = form.watch("isForeigner");
 
-  // ── 2단계 안전 네비게이션 ─────────────────────────────────────────────────
+  // 2단계 안전 네비게이션:
+  // Phase 1 — transitioning=true → return null 으로 폼 전체(Select 포함) 언마운트
+  // Phase 2 — useEffect가 setLocation 실행 (DOM이 완전히 비워진 뒤)
   const [transitioning, setTransitioning] = useState(false);
-
-  // 컴포넌트 생명주기 추적
-  useEffect(() => {
-    ft('컴포넌트 mount');
-    return () => { ft('컴포넌트 cleanup/unmount'); };
-  }, []);
 
   useEffect(() => {
     if (!createEmployee.isSuccess) return;
-    ft('mutation 성공');
-    ft('query invalidation 시작');
-    queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() }).then(() => {
-      ft('query invalidation 완료');
-    });
-    ft('toast 호출');
+    queryClient.invalidateQueries({ queryKey: getListEmployeesQueryKey() });
     toast.success("직원이 성공적으로 등록되었습니다.");
-    ft('navigation 호출 직전');
     setTransitioning(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createEmployee.isSuccess]);
 
   useEffect(() => {
     if (!transitioning) return;
-    ft('navigation 호출');
     setLocation("/employees");
   }, [transitioning, setLocation]);
 
   if (transitioning) return null;
 
   const onSubmit = (values: FormValues) => {
-    ft('submit 시작');
-    ft('mutation 호출 직전');
     createEmployee.mutate(
       { data: values },
       {
         onError: () => {
-          ft('mutation 오류');
           toast.error("직원 등록에 실패했습니다.");
         },
       }
@@ -158,11 +139,7 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>부서 *</FormLabel>
-                    <Select
-                      onValueChange={(v) => { ft(`Select value 변경: department=${v}`); field.onChange(v); }}
-                      onOpenChange={(open) => { ft(`Select open 상태 변경: department open=${open}`); }}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger><SelectValue placeholder="부서 선택" /></SelectTrigger>
                       </FormControl>
@@ -186,11 +163,7 @@ export default function EmployeeNew() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>직급 *</FormLabel>
-                    <Select
-                      onValueChange={(v) => { ft(`Select value 변경: position=${v}`); field.onChange(v); }}
-                      onOpenChange={(open) => { ft(`Select open 상태 변경: position open=${open}`); }}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger><SelectValue placeholder="직급 선택" /></SelectTrigger>
                       </FormControl>
@@ -320,11 +293,7 @@ export default function EmployeeNew() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>비자 종류</FormLabel>
-                        <Select
-                          onValueChange={(v) => { ft(`Select value 변경: visaType=${v}`); field.onChange(v); }}
-                          onOpenChange={(open) => { ft(`Select open 상태 변경: visaType open=${open}`); }}
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger><SelectValue placeholder="비자 종류 선택" /></SelectTrigger>
                           </FormControl>

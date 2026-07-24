@@ -2,7 +2,7 @@
  * 직원 360 View — 인사이력 / 교육이력 / 상벌이력 / 면담기록 탭 컴포넌트
  * 각 이력: 추가 + 인라인 편집 + 삭제(확인)
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -35,10 +35,6 @@ async function apiDelete(path: string) {
   const res = await fetch(`${BASE}${path}`, { method: "DELETE" });
   if (!res.ok) throw new Error("삭제 실패");
 }
-
-// ── 파일 수준 FLOW TRACE (PersonnelForm에서도 사용) ─────────────────────────
-const _ftPersonnel = (event: string) =>
-  console.error(`[FLOW TRACE][인사이력추가][${event}][${Date.now()}]`);
 
 // ─── 공통 ─────────────────────────────────────────────────────────────────────
 function EmptyRow({ text }: { text: string }) {
@@ -87,8 +83,7 @@ function PersonnelForm({ value, onChange }: { value: ReturnType<typeof emptyPers
           <Label className="text-xs">구분 *</Label>
           <Select
             value={value.type}
-            onValueChange={v => { _ftPersonnel(`Select value 변경: type=${v}`); onChange({ ...value, type: v }); }}
-            onOpenChange={open => _ftPersonnel(`Select open 상태 변경: type open=${open}`)}
+            onValueChange={v => onChange({ ...value, type: v })}
           >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>{PERSONNEL_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
@@ -123,11 +118,6 @@ function PersonnelForm({ value, onChange }: { value: ReturnType<typeof emptyPers
   );
 }
 
-// ── FLOW TRACE 헬퍼 (인사이력 추가) ─────────────────────────────────────────
-const ftP = (event: string) =>
-  console.error(`[FLOW TRACE][인사이력추가][${event}][${Date.now()}]`);
-// ──────────────────────────────────────────────────────────────────────────
-
 export function PersonnelHistoryTab({ employeeId }: { employeeId: number }) {
   const qc = useQueryClient();
   const [addOpen, setAddOpen] = useState(false);
@@ -135,31 +125,18 @@ export function PersonnelHistoryTab({ employeeId }: { employeeId: number }) {
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState(emptyPersonnel());
 
-  // 생명주기 추적
-  useEffect(() => {
-    ftP('컴포넌트 mount');
-    return () => { ftP('컴포넌트 cleanup/unmount'); };
-  }, []);
-
   const qKey = ["personnel-history", employeeId];
   const { data = [], isLoading } = useQuery<PersonnelRecord[]>({ queryKey: qKey, queryFn: () => apiFetch(`/api/employees/${employeeId}/personnel-history`) });
 
   const createMut = useMutation({
-    mutationFn: () => {
-      ftP('mutation 호출 직전');
-      return apiPost(`/api/employees/${employeeId}/personnel-history`, { ...addForm, previousDepartment: addForm.previousDepartment || null, newDepartment: addForm.newDepartment || null, previousPosition: addForm.previousPosition || null, newPosition: addForm.newPosition || null });
-    },
+    mutationFn: () => apiPost(`/api/employees/${employeeId}/personnel-history`, { ...addForm, previousDepartment: addForm.previousDepartment || null, newDepartment: addForm.newDepartment || null, previousPosition: addForm.previousPosition || null, newPosition: addForm.newPosition || null }),
     onSuccess: () => {
-      ftP('mutation 성공');
-      ftP('query invalidation 시작');
-      qc.invalidateQueries({ queryKey: qKey }).then(() => ftP('query invalidation 완료'));
-      ftP('toast 호출');
+      qc.invalidateQueries({ queryKey: qKey });
       toast.success("추가되었습니다.");
       setAddForm(emptyPersonnel());
-      ftP('setAddOpen(false)');
       setAddOpen(false);
     },
-    onError: () => { ftP('mutation 오류'); toast.error("저장 실패"); },
+    onError: () => toast.error("저장 실패"),
   });
 
   const updateMut = useMutation({
@@ -184,7 +161,7 @@ export function PersonnelHistoryTab({ employeeId }: { employeeId: number }) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="font-semibold">인사이력</h3>
-        <Button size="sm" variant="outline" onClick={() => { const next = !addOpen; ftP(`Dialog open 상태 변경: addOpen=${next}`); setAddOpen(next); setEditId(null); }}>
+        <Button size="sm" variant="outline" onClick={() => { setAddOpen(!addOpen); setEditId(null); }}>
           {addOpen ? <ChevronUp className="h-4 w-4 mr-1" /> : <Plus className="h-4 w-4 mr-1" />}
           {addOpen ? "닫기" : "추가"}
         </Button>
@@ -194,8 +171,8 @@ export function PersonnelHistoryTab({ employeeId }: { employeeId: number }) {
         <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
           <PersonnelForm value={addForm} onChange={setAddForm} />
           <div className="flex justify-end gap-2">
-            <Button size="sm" variant="outline" onClick={() => { ftP('Dialog open 상태 변경: addOpen=false (취소)'); setAddOpen(false); }}>취소</Button>
-            <Button size="sm" onClick={() => { ftP('submit 시작'); createMut.mutate(); }} disabled={!addForm.date || !addForm.description || createMut.isPending}>
+            <Button size="sm" variant="outline" onClick={() => setAddOpen(false)}>취소</Button>
+            <Button size="sm" onClick={() => createMut.mutate()} disabled={!addForm.date || !addForm.description || createMut.isPending}>
               {createMut.isPending ? "저장 중..." : "저장"}
             </Button>
           </div>
