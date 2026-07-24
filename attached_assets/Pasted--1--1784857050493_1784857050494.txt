@@ -1,0 +1,502 @@
+현재 프로젝트의 운영 배포본에서 아래 오류가 반복 발생합니다.
+
+[실제 재현 결과]
+
+1. 직원 등록
+- 저장 처리는 정상적으로 완료됨
+- 저장 직후 화면 전환 과정에서 오류 화면 발생
+- 오류:
+  NotFoundError: Failed to execute 'removeChild' on 'Node':
+  The node to be removed is not a child of this node.
+- 현재 스택:
+  Node.removeChild (src/main.tsx interceptor line)
+
+2. 직원 정보수정
+- 수정 저장 처리는 정상적으로 완료됨
+- 저장 직후 화면 전환 과정에서 오류 화면 발생
+- 오류:
+  NotFoundError: Failed to execute 'removeChild' on 'Node':
+  The node to be removed is not a child of this node.
+- 현재 스택:
+  Node.removeChild (src/main.tsx interceptor line)
+
+3. 인사이력 추가
+- 추가 저장 처리는 정상적으로 완료됨
+- 저장 직후 화면 갱신 또는 다이얼로그 종료 과정에서 오류 화면 발생
+- 오류:
+  NotFoundError: Failed to execute 'insertBefore' on 'Node':
+  The node before which the new node is to be inserted is not a child of this node.
+- 현재 스택:
+  Node.insertBefore (src/main.tsx interceptor line)
+
+[현재까지 확인된 사실]
+
+- DB 저장 및 API 요청은 정상입니다.
+- 오류는 저장 이후 React DOM commit 과정에서 발생합니다.
+- 모바일에서는 정상이고 데스크톱 운영 배포본에서 재현됩니다.
+- 데스크톱과 모바일의 React 컴포넌트 트리는 동일하며, 반응형 차이는 CSS 기반입니다.
+- 번들에서 v3는 src/App.tsx의 App 컴포넌트로 확인됐습니다.
+- 컴포넌트 스택의 button은 Radix SelectTrigger / SelectValue와 관련될 가능성이 있습니다.
+- @radix-ui/react-select 내부 SelectItemText가 선택 텍스트를 SelectValue span으로 createPortal하는 구조는 확인했습니다.
+
+[이미 적용했지만 해결되지 않은 수정]
+
+- Select 닫기 애니메이션 제거
+- 저장 후 2단계 navigation 처리
+- Select Portal 제거
+- 열기 애니메이션 복원
+- DOM removeChild / insertBefore interceptor 추가
+
+위 수정 후에도 세 오류가 동일하게 재현됐습니다.
+
+따라서 기존의 “Select 닫기 애니메이션 경쟁” 가설은 아직 입증되지 않았으며,
+추가적인 추측성 수정은 금지합니다.
+
+==================================================
+이번 작업의 목표
+==================================================
+
+이번 작업은 다음 순서로 진행하세요.
+
+1. 현재 상태 백업
+2. 증거 수집용 진단 코드 구축
+3. 세 오류 재현 및 로그 확보
+4. 실제 원인 특정
+5. 원인에 직접 필요한 최소 수정
+6. 세 기능 및 관련 기능 회귀 테스트
+7. 불필요한 실험 수정과 진단 코드 정리
+8. 최종 결과 보고
+
+원인을 특정하기 전에 UI 구조 변경, 라이브러리 교체, 전면 리팩터링을 하지 마세요.
+
+==================================================
+1단계: 작업 전 안전조치
+==================================================
+
+작업 시작 전에 현재 코드를 Git 커밋 또는 명확한 체크포인트로 보존하세요.
+
+커밋 메시지 예시:
+checkpoint: before DOM reconciliation debugging
+
+현재 적용된 수정 사항을 먼저 목록화하세요.
+
+특히 아래 파일의 현재 상태를 확인하세요.
+
+- src/main.tsx
+- src/App.tsx
+- 직원 등록 페이지
+- 직원 수정 페이지
+- 인사이력 추가 컴포넌트 또는 다이얼로그
+- 공통 EmployeeForm
+- 공통 Select 컴포넌트
+- ErrorBoundary
+- Layout
+- React Query mutation 관련 코드
+
+아직 이 단계에서는 동작 코드를 변경하지 마세요.
+
+==================================================
+2단계: DOM interceptor 강화
+==================================================
+
+src/main.tsx의 기존 removeChild / insertBefore interceptor가
+현재는 오류 위치만 main.tsx로 바꾸고 실제 노드 정보를 출력하지 못하고 있습니다.
+
+기존 interceptor를 개선하여 호출 직전에 다음 정보를 반드시 출력하세요.
+
+A. removeChild
+
+고정 시작 문자열:
+[DOM TRACE removeChild START]
+
+각 항목을 개별 console.error로 출력:
+
+- timestamp
+- parent 노드 객체
+- parent.nodeName
+- parent.id
+- parent.className
+- parent.isConnected
+- parent.parentNode
+- child 노드 객체
+- child.nodeName
+- child.nodeType
+- child.textContent 요약
+- child.outerHTML 요약
+- child.isConnected
+- child.parentNode
+- parent === child.parentNode
+- parent.contains(child)
+- Array.from(parent.childNodes)
+- parent.outerHTML 요약
+- document.activeElement
+- location.pathname
+- new Error("removeChild call stack").stack
+
+오류가 실제로 발생할 조건인
+child.parentNode !== parent
+인 경우에는 별도 고정 문자열을 출력:
+
+[DOM TRACE removeChild INVALID RELATION]
+
+B. insertBefore
+
+고정 시작 문자열:
+[DOM TRACE insertBefore START]
+
+각 항목을 개별 console.error로 출력:
+
+- timestamp
+- parent 노드 객체
+- parent.nodeName
+- parent.id
+- parent.className
+- parent.isConnected
+- newNode 객체
+- newNode.nodeName
+- newNode.textContent 요약
+- newNode.outerHTML 요약
+- newNode.parentNode
+- newNode.isConnected
+- referenceNode 객체
+- referenceNode?.nodeName
+- referenceNode?.textContent 요약
+- referenceNode?.outerHTML 요약
+- referenceNode?.parentNode
+- referenceNode?.isConnected
+- referenceNode === null
+- referenceNode?.parentNode === parent
+- parent.contains(referenceNode)
+- Array.from(parent.childNodes)
+- parent.outerHTML 요약
+- document.activeElement
+- location.pathname
+- new Error("insertBefore call stack").stack
+
+referenceNode가 null이 아닌데 referenceNode.parentNode !== parent이면:
+
+[DOM TRACE insertBefore INVALID REFERENCE]
+
+주의사항:
+
+- console.groupCollapsed을 사용하지 마세요.
+- 로그 객체가 나중에 변경되어 보이지 않도록 문자열 스냅샷도 함께 남기세요.
+- circular reference 때문에 JSON.stringify 오류가 나지 않도록 안전한 요약 함수를 사용하세요.
+- 로그 출력 후 원래 DOM 메서드를 그대로 호출하세요.
+- 오류를 무시하거나 return으로 우회하거나 try/catch로 삼키지 마세요.
+- 인터셉터 자체가 앱 동작을 바꾸면 안 됩니다.
+
+==================================================
+3단계: 라이프사이클 및 실행 순서 추적
+==================================================
+
+아래 세 흐름에만 임시 추적 로그를 추가하세요.
+
+1. 직원 등록 저장
+2. 직원 수정 저장
+3. 인사이력 추가 저장
+
+각 흐름에서 아래 이벤트 순서를 고정된 형식으로 기록하세요.
+
+형식:
+[FLOW TRACE][화면명][이벤트명][timestamp]
+
+기록할 이벤트:
+
+- submit 시작
+- mutation 호출 직전
+- mutation 성공
+- mutation 오류
+- query invalidation 시작
+- query invalidation 완료
+- toast 호출
+- Select open 상태 변경
+- Select value 변경
+- Dialog open 상태 변경
+- setAddOpen(false) 또는 이에 해당하는 상태 변경
+- navigation 호출 직전
+- navigation 호출
+- 컴포넌트 mount
+- 컴포넌트 cleanup/unmount
+
+대상 컴포넌트:
+
+- 직원 등록 페이지
+- 직원 수정 페이지
+- 인사이력 추가 UI
+- 공통 EmployeeForm
+- 공통 Select wrapper
+- 관련 Dialog
+- ErrorBoundary
+
+로그만 추가하고 이 단계에서는 동작 순서를 변경하지 마세요.
+
+==================================================
+4단계: 제한적인 MutationObserver
+==================================================
+
+전역 document.body 전체 변경을 무제한 기록하지 마세요.
+로그 폭증을 방지해야 합니다.
+
+오류 발생 가능성이 있는 아래 영역에만 임시 MutationObserver를 적용하세요.
+
+- 직원 폼 루트
+- SelectTrigger button 및 내부 SelectValue span
+- SelectContent가 마운트되는 컨테이너
+- 인사이력 Dialog 루트
+- 앱 root
+
+각 mutation에 대해 기록:
+
+- mutation type
+- target
+- addedNodes
+- removedNodes
+- previousSibling
+- nextSibling
+- timestamp
+- 현재 pathname
+
+고정 문자열:
+[MUTATION TRACE]
+
+선택 텍스트 노드 또는 button 내부 노드가 이동되거나 제거되는 경우 별도 표시:
+
+[MUTATION TRACE SELECT VALUE NODE]
+
+Observer는 디버그 모드에서만 동작하도록 구성하세요.
+
+==================================================
+5단계: 코드 구조 비교 분석
+==================================================
+
+세 오류 화면의 공통점을 코드 기준으로 비교하세요.
+
+반드시 표 형태로 정리:
+
+- 사용 페이지 컴포넌트
+- 공통 Form
+- 공통 Select
+- Dialog 사용 여부
+- Portal 사용 여부
+- mutation hook
+- invalidateQueries
+- toast
+- navigation
+- 상태 종료 처리
+- ErrorBoundary
+- 저장 성공 직후 발생하는 모든 state update
+
+특히 다음 가능성을 증거로 검토하세요.
+
+- 동일 DOM 노드가 React와 외부 코드에 의해 동시에 이동 또는 제거되는지
+- Radix SelectValue의 text portal 대상이 컴포넌트 unmount 중 변경되는지
+- Portal 제거 변경이 Radix 내부 기대 구조를 깨뜨렸는지
+- 저장 성공 후 invalidateQueries와 navigation 또는 Dialog close가 같은 commit에 겹치는지
+- StrictMode 또는 중복 root 생성이 있는지
+- React 또는 react-dom이 중복 설치됐는지
+- 서로 다른 React 버전이 번들에 포함됐는지
+- createRoot가 두 번 호출되는지
+- key 값이 불안정하거나 중복되는지
+- 조건부 렌더링에서 동일 노드를 다른 부모로 재사용하는지
+- 수동 DOM 조작 코드가 존재하는지
+- 브라우저 번역 기능, 확장 프로그램, 자동 번역 또는 외부 스크립트가 DOM을 변형하는지
+
+단, 가능성을 나열하는 데서 끝내지 말고
+각 항목마다 확인한 코드 또는 로그 근거와 판정을 기록하세요.
+
+판정 형식:
+
+- 확인됨
+- 배제됨
+- 미확인
+- 유력
+- 원인 아님
+
+==================================================
+6단계: 재현 테스트
+==================================================
+
+가능한 경우 production build 또는 deployment와 동일한 빌드 조건으로 테스트하세요.
+
+각 기능을 최소 2회씩 재현:
+
+A. 직원 등록
+B. 직원 수정
+C. 인사이력 추가
+
+각 테스트에서 기록:
+
+- 입력한 Select 사용 여부
+- 저장 성공 여부
+- URL 변경 여부
+- Dialog 종료 여부
+- 오류 발생 시점
+- 최초 INVALID RELATION 로그
+- 해당 로그 직전 FLOW TRACE 10개
+- 관련 MUTATION TRACE
+- 실제 DOM parent/child/referenceNode
+
+중요:
+
+오류가 발생한 뒤의 파생 오류가 아니라
+가장 먼저 나타난 INVALID RELATION 로그를 기준으로 분석하세요.
+
+==================================================
+7단계: 원인 특정 기준
+==================================================
+
+아래 내용을 모두 제시할 수 있을 때만 “원인 특정”이라고 판단하세요.
+
+1. 잘못된 DOM 호출의 실제 parent
+2. 잘못된 child 또는 referenceNode
+3. 해당 노드가 원래 어느 컴포넌트에서 생성됐는지
+4. 해당 노드가 먼저 이동 또는 제거된 시점
+5. 그 작업을 발생시킨 state update 또는 component lifecycle
+6. React가 이후 다시 조작하게 된 이유
+7. 모바일에서 재현되지 않는 이유에 대한 확인 가능한 설명
+   - 확정할 수 없다면 추정이라고 명시
+
+근거가 부족하면 바로 수정하지 말고 진단 결과만 보고하세요.
+
+==================================================
+8단계: 최소 수정
+==================================================
+
+원인이 확인된 경우에만 수정하세요.
+
+수정 원칙:
+
+- 가장 작은 범위
+- 업무 동작 유지
+- 데이터 저장 흐름 유지
+- UI 전체 교체 금지
+- 라이브러리 대규모 변경 금지
+- 임시 setTimeout 남용 금지
+- DOM 오류를 무시하는 방어 코드 금지
+- ErrorBoundary로 오류를 숨기는 처리 금지
+- removeChild / insertBefore 실패를 무시하는 처리 금지
+
+수정 전에 다음 형식으로 내부 판단을 정리하세요.
+
+원인:
+근거:
+수정 대상:
+수정 이유:
+예상 부작용:
+회귀 테스트 범위:
+
+그 후 최소 수정만 적용하세요.
+
+==================================================
+9단계: 기존 실험 수정 정리
+==================================================
+
+최종 원인이 확인되고 수정이 성공하면
+기존 실험 수정 각각을 검토하세요.
+
+- Select 닫기 애니메이션 제거
+- 2단계 navigation
+- Select Portal 제거
+- 열기 애니메이션 복원 관련 변경
+
+각 항목별로:
+
+- 최종 해결에 필요함
+- 불필요함
+- 원복해야 함
+- 유지해도 무관함
+
+중 하나로 판정하세요.
+
+불필요하거나 Radix 기본 동작을 훼손하는 변경은 원복하세요.
+
+특히 Portal 제거가 원인이 아니고 오히려 비표준 동작이라면 원복하세요.
+
+==================================================
+10단계: 회귀 테스트
+==================================================
+
+수정 후 반드시 다음을 확인하세요.
+
+- 직원 신규 등록 성공
+- 등록 후 정상 화면 이동
+- 직원 정보수정 성공
+- 수정 후 정상 화면 이동
+- 인사이력 추가 성공
+- Dialog 정상 종료
+- 직원 상세 새로고침 후 데이터 유지
+- Select 선택값 정상 표시
+- Select 열기/닫기 정상
+- 키보드 조작 정상
+- 모바일 정상
+- 데스크톱 정상
+- 브라우저 콘솔 DOM 오류 없음
+- 기존 직원 목록 조회 정상
+- 기존 직원 상세 조회 정상
+
+production build도 실행하여 빌드 오류가 없는지 확인하세요.
+
+==================================================
+11단계: 진단 코드 제거
+==================================================
+
+문제 해결과 회귀 테스트가 끝나면 다음 임시 코드를 제거하세요.
+
+- DOM interceptor
+- MutationObserver
+- FLOW TRACE
+- mount/unmount 추적 로그
+- 디버그 전용 전역 변수
+
+다만 원인 분석에 필요한 로그를 먼저 최종 보고서에 저장한 뒤 제거하세요.
+
+최종 운영 코드에 DOM 메서드 monkey patch를 남기지 마세요.
+
+==================================================
+12단계: 최종 보고 형식
+==================================================
+
+최종 답변은 아래 순서로 작성하세요.
+
+1. 결론
+- 해결됨 / 미해결
+
+2. 실제 근본 원인
+- 한 문단으로 명확히 설명
+
+3. 결정적 증거
+- 실제 parent
+- child 또는 referenceNode
+- 최초 invalid 로그
+- 관련 컴포넌트
+- 관련 상태 변경 순서
+
+4. 변경 파일
+- 파일별 변경 내용
+- 가능하면 함수명 또는 줄 범위
+
+5. 기존 실험 수정 판정
+- 유지
+- 원복
+- 제거
+
+6. 테스트 결과
+- 직원 등록
+- 직원 수정
+- 인사이력 추가
+- 모바일
+- 데스크톱
+- production build
+
+7. 남은 위험 또는 미확인 사항
+
+8. 최종 Git 커밋 해시 또는 커밋 메시지
+
+중요한 제한:
+
+- 증거 없이 “Radix 버그”, “React 경쟁 상태”라고 단정하지 마세요.
+- 오류를 숨기는 방식으로 해결 완료 처리하지 마세요.
+- 데이터 저장 성공만으로 해결됐다고 판단하지 마세요.
+- 세 기능의 오류 화면이 사라지고 콘솔 오류도 없어야 해결입니다.
+- 작업 범위와 무관한 신규 기능 또는 디자인 수정은 하지 마세요.
